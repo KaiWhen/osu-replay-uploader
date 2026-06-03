@@ -1,0 +1,9 @@
+python_dotenv
+google_api_python_client
+google_auth_oauthlib
+aiohttp
+ossapi
+pymongo
+pillow
+osu-tools-py
+python-dateutil
