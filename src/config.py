@@ -33,7 +33,7 @@ DISCORD_APPROVAL_CHANNEL_ID = 1110508875238604871
 
 # o!rdr
 ORDR_API_URL = "https://apis.issou.best/ordr/renders"
-ORDR_KEY = os.environ["ORDR_KEY"]
+# ORDR_KEY = os.environ["ORDR_KEY"]
 DEFAULT_SKIN_ID = "7496"
 SKIN_URL = "https://apis.issou.best/ordr/skins/custom"
 

@@ -1,11 +1,10 @@
+import discord, math
 from discord.ext import commands, tasks
 from src.db.jobs import enqueue
 from src.db.scores import insert_score
 from src.services.score import get_score_data
 from src.services.forms import get_form_resp
 from src.config import DISCORD_APPROVAL_CHANNEL_ID
-import discord, asyncio, math
-
 from src.utils import get_map_country_rank, map_difficulty_to_str, sort_mods
 
 VOTES_REQUIRED = 3

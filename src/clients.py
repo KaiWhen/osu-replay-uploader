@@ -8,7 +8,7 @@ osu = OssapiAsync(
     OSU_CLIENT_SECRET,
     OSU_REDIRECT_URI,
     grant="authorization",
-    token_key="osu_token",
+    token_key="osutoken",
     token_directory=str(TOKENS_DIR)
 )
 

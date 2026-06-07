@@ -13,6 +13,8 @@ async def enqueue(db, job_type: str, score_id: str, payload: dict):
         "next_retry_at": datetime.now(timezone.utc),
         "created_at": datetime.now(timezone.utc),
         "updated_at": datetime.now(timezone.utc),
+        "discord_message_id": -1,
+        "discord_message_hash": None,
         "error": None,
     })
 
@@ -29,11 +31,19 @@ async def claim_next_job(db, job_type: str):
     )
 
 
+async def get_ongoing_jobs(db):
+    return await db['jobs'].find({
+        "status": {
+            "$in": ["pending", "processing", "failed"]
+        }
+    }).to_list(length=None)
+
+
 async def complete_job(db, job_id: ObjectId, result_payload: dict = None):
     await db["jobs"].update_one(
         {"_id": job_id},
         {"$set": {
-            "status": "done",
+            "status": "complete",
             "payload": result_payload or {},
             "updated_at": datetime.now(timezone.utc),
         }},
@@ -65,3 +75,10 @@ async def recover_stale_jobs(db):
             "next_retry_at": datetime.now(timezone.utc),
         }},
     )
+
+from src.db.mongo import db
+async def test():
+    await enqueue(db, "render", 6826296045, "test")
+
+import asyncio
+# asyncio.run(test())
