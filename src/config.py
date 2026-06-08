@@ -22,6 +22,7 @@ OSU_REDIRECT_URI = "http://localhost:3000"
 GOOGLE_REDIRECT_URI = "http://localhost:8080/oauth/callback"
 YOUTUBE_SCOPES = ["https://www.googleapis.com/auth/youtube.force-ssl", "https://www.googleapis.com/auth/youtube.upload"]
 FORMS_SCOPES = ["https://www.googleapis.com/auth/forms.responses.readonly"]
+DRIVE_SCOPES = ['https://www.googleapis.com/auth/drive.metadata', 'https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/drive.file']
 FORM_ID = "1quic99kn_XTBrMaZA8un_j3Xr5Xk98wY2-bYwteQx5s"
 FORM_ANSWER_FIELD_ID = "7f0c0670"
 

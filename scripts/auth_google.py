@@ -1,7 +1,7 @@
 import asyncio
 from aiohttp import web
 from google_auth_oauthlib.flow import Flow
-from src.config import GOOGLE_REDIRECT_URI, YOUTUBE_SCOPES, FORMS_SCOPES, TOKENS_DIR
+from src.config import GOOGLE_REDIRECT_URI, YOUTUBE_SCOPES, FORMS_SCOPES, TOKENS_DIR, DRIVE_SCOPES
 
 
 CODE_RESULT = None
@@ -42,8 +42,9 @@ async def main():
     await runner.setup()
     await web.TCPSite(runner, "0.0.0.0", 8080).start()
 
-    await authorize(YOUTUBE_SCOPES, "youtube_token.json")
-    await authorize(FORMS_SCOPES, "forms_token.json")
+    #await authorize(YOUTUBE_SCOPES, "youtube_token.json")
+    #await authorize(FORMS_SCOPES, "forms_token.json")
+    await authorize(DRIVE_SCOPES, "drive_token.json")
     print("All tokens saved!")
 
 

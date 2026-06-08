@@ -5,7 +5,7 @@ from bson import ObjectId
 from discord import app_commands, Interaction
 from discord.ext import commands, tasks
 from src.db.jobs import get_ongoing_jobs
-from src.config import DISCORD_APPROVAL_CHANNEL_ID 
+from src.config import DISCORD_APPROVAL_CHANNEL_ID
 from src.utils import sort_mods
 
 
@@ -29,7 +29,7 @@ class JobsFeed(commands.Cog):
             if job['discord_message_id'] < 0:
                 embed = await self._build_job_embed(job)
                 hash = self.embed_hash(embed)
-                message = await channel.send(content="**New score found**", embed=embed)
+                message = await channel.send(content=f"**Ongoing job for score {job['score_id']}**", embed=embed)
                 await self.bot.db['jobs'].update_one(
                     {"_id": job["_id"]},
                     {"$set": {
@@ -80,13 +80,13 @@ class JobsFeed(commands.Cog):
         #em.add_field(
         #    name=f"Attempt",
         #    value=f"{job['attempts']}",
-        #    inline=True 
+        #    inline=True
         #)
         em.set_image(url=f"https://assets.ppy.sh/beatmaps/{score.beatmapset.id}/covers/card.jpg")
-        em.set_footer(text=f"_id: {job['_id']}")
+        em.set_footer(text=f"{job['_id']}")
         return em
-    
-    
+
+
     def embed_hash(self, embed: discord.Embed) -> str:
         return hashlib.md5(json.dumps(embed.to_dict(), sort_keys=True).encode()).hexdigest()
 

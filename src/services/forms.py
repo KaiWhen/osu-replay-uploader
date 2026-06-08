@@ -9,8 +9,8 @@ from src.config import FORM_ID, COUNTRY_CODE
 
 async def get_form_resp():
     update_status = get_status(db, COUNTRY_CODE)
-    service = get_forms()
-    result = await service.forms().responses().list(formId=FORM_ID).execute()
+    forms_service = get_forms()
+    result = await forms_service.forms().responses().list(formId=FORM_ID).execute()
     score_ids = []
     if 'responses' not in result:
         return score_ids

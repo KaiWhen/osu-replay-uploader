@@ -7,3 +7,4 @@ pymongo
 pillow
 osu-tools-py
 python-dateutil
+aiofiles
