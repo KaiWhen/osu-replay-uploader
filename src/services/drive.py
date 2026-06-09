@@ -1,3 +1,4 @@
+import asyncio
 import aiohttp
 import aiofiles
 import re
@@ -5,7 +6,9 @@ from src.clients import get_drive
 
 
 async def download_file(file_id: str, destination: str):
-    URL = "https://docs.google.com/uc?export=download"
+    drive = get_drive()
+    drive.permissions().create(body={"role": "reader", "type": "anyone"}, fileId=file_id).execute()
+    URL = "https://drive.google.com/uc?export=download"
 
     async with aiohttp.ClientSession() as session:
         async with session.get(URL, params={"id": file_id}) as response:
@@ -24,3 +27,10 @@ async def _save_response(response: aiohttp.ClientResponse, destination: str):
         async for chunk in response.content.iter_chunked(CHUNK_SIZE):
             if chunk:
                 await f.write(chunk)
+
+
+async def delete_file(file_id: str):
+    drive = get_drive()
+    await asyncio.to_thread(
+        drive.files().delete(fileId=file_id).execute
+    )

@@ -66,7 +66,7 @@ async def get_top_scores() -> list[int]:
     now = datetime.now()
     timestamp = datetime.timestamp(now)
     await update_status(db, COUNTRY_CODE, {
-        "last_updated": datetime.timestamp(datetime.now())
+        "last_updated": timestamp
     })
 
     return valid_scores

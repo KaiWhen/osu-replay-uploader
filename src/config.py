@@ -6,9 +6,11 @@ load_dotenv()
 
 # paths
 BASE_DIR = Path(__file__).parent.parent
-TOKENS_DIR = BASE_DIR / "tokens"
-REPLAYS_DIR = BASE_DIR / "replays"
-THUMBNAILS_DIR = BASE_DIR / "thumbnails"
+TOKENS_DIR = BASE_DIR / "tokens/"
+REPLAYS_DIR = BASE_DIR / "replays/"
+THUMBNAILS_DIR = BASE_DIR / "thumbnails/"
+VIDEOS_DIR = BASE_DIR / "videos/"
+MAPS_DIR = BASE_DIR / "maps/"
 
 # mongo
 MONGO_URI = os.environ["MONGO_URI"]
@@ -24,7 +26,8 @@ YOUTUBE_SCOPES = ["https://www.googleapis.com/auth/youtube.force-ssl", "https://
 FORMS_SCOPES = ["https://www.googleapis.com/auth/forms.responses.readonly"]
 DRIVE_SCOPES = ['https://www.googleapis.com/auth/drive.metadata', 'https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/drive.file']
 FORM_ID = "1quic99kn_XTBrMaZA8un_j3Xr5Xk98wY2-bYwteQx5s"
-FORM_ANSWER_FIELD_ID = "7f0c0670"
+FORM_SCORE_ANSWER_ID = "7f0c0670"
+FORM_FILE_ANSWER_ID = "168ed010"
 
 # discord
 DISCORD_TOKEN = os.environ["BOT_TOKEN"]

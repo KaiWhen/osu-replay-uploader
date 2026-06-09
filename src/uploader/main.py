@@ -9,7 +9,7 @@ from src.uploader.workers.render import render_worker
 from src.uploader.workers.upload import upload_worker
 from src.uploader.workers.score import score_worker
 from src.uploader.workers.poll_render import poll_render_worker
-from src.config import COUNTRY_CODE
+from src.config import COUNTRY_CODE, VIDEOS_DIR, MAPS_DIR, REPLAYS_DIR, TOKENS_DIR
 
 
 async def main():
@@ -36,12 +36,14 @@ async def main():
 
 
 def check_dirs():
-    if not os.path.exists("videos/"):
-        os.mkdir("videos/")
-    if not os.path.exists("maps/"):
-        os.mkdir("maps/")
-    if not os.path.exists("replays/"):
-        os.mkdir("replays/")
+    if not os.path.exists(VIDEOS_DIR):
+        os.mkdir(VIDEOS_DIR)
+    if not os.path.exists(MAPS_DIR):
+        os.mkdir(MAPS_DIR)
+    if not os.path.exists(REPLAYS_DIR):
+        os.mkdir(REPLAYS_DIR)
+    if not os.path.exists(TOKENS_DIR):
+        os.mkdir(TOKENS_DIR)
 
 
 asyncio.run(main())

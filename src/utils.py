@@ -1,10 +1,15 @@
 import os
+from datetime import datetime, timezone
 from osu_tools import OsuCalculator
 
 SPECIAL_CHARS = "\":@%^*?=,<>/|"
 DIFFICULTY_MODS = {'EZ', 'HR', 'DT', 'NC', 'HT', 'DC'}
 SPEED_MODS = {'DT', 'NC', 'HT', 'DC'}
 MOD_ORDER = ['EZ', 'HT', 'DC', 'HD', 'DT', 'NC', 'HR', 'FL']
+
+
+def to_rfc3339(timestamp: float) -> str:
+    return datetime.fromtimestamp(timestamp, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def parse_diff_name(diff: str):
@@ -111,7 +116,7 @@ def map_difficulty_to_str(score_obj, mods: list[str], acc: float) -> tuple[str, 
     base_star_rating = round(score_obj.beatmap.difficulty_rating, 2)
 
     difficulty_mods = get_difficulty_mods(mods)
-    ar_str, od_str, cs_str, bpm_str = map_difficulty_to_str(base_ar, base_od, base_cs, base_bpm, difficulty_mods)
+    ar_str, od_str, cs_str, bpm_str = calc_map_difficulty(base_ar, base_od, base_cs, base_bpm, difficulty_mods)
     star_rating = calc_sr(score_obj, mods, acc)
     sr_string = star_rating if star_rating > 0 else base_star_rating
 

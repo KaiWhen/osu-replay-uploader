@@ -1,4 +1,6 @@
-import discord, math
+import asyncio
+import discord
+import math
 from discord.ext import commands, tasks
 from src.db.jobs import enqueue
 from src.db.scores import insert_score
@@ -7,7 +9,8 @@ from src.services.forms import get_form_resp
 from src.config import DISCORD_APPROVAL_CHANNEL_ID
 from src.utils import get_map_country_rank, map_difficulty_to_str, sort_mods
 
-VOTES_REQUIRED = 3
+VOTES_REQUIRED = 1
+TEST_CHANNEL_ID = 1106553041836052501
 
 
 class Approvals(commands.Cog):
@@ -23,17 +26,27 @@ class Approvals(commands.Cog):
 
     @tasks.loop(minutes=1)
     async def form_loop(self):
-        channel = self.bot.get_channel(DISCORD_APPROVAL_CHANNEL_ID)
-        score_ids = await get_form_resp(self.bot.db)
-        if not score_ids:
+        channel = self.bot.get_channel(TEST_CHANNEL_ID)
+        scores = await get_form_resp()
+        if not scores:
             return
 
-        for score_id in score_ids:
-            await self._handle_request(channel, score_id)
+        for score in scores:
+            await self._handle_request(channel, score)
 
 
-    async def _handle_request(self, channel, score_id):
+    async def _handle_request(self, channel, score_dict):
+        score_id = score_dict['score_id']
         score = await self.bot.osu.score(score_id=score_id)
+
+        if not score_dict['valid']:
+            embed = self._build_fail_embed(score_dict, score)
+
+            return await channel.send(
+                content="**Invalid replay upload request**",
+                embed=embed
+            )
+
         beatmap_scores = await self.bot.osu.beatmap_scores(
             beatmap_id=score.beatmap.id,
             mode="osu",
@@ -102,6 +115,29 @@ class Approvals(commands.Cog):
         )
         em.set_image(url=f"https://assets.ppy.sh/beatmaps/{score.beatmapset.id}/covers/card.jpg")
         em.set_footer(text=f"Requires {VOTES_REQUIRED} votes to approve or deny")
+
+        return em
+
+
+    def _build_fail_embed(self, score_dict, score) -> discord.Embed:
+        em = discord.Embed()
+        if score:
+            mods = [mod.acronym for mod in score.mods]
+            mods = sort_mods(mods)
+            mods_str = "".join(mods)
+            em.set_author(
+                name=f"{score._user.username} | {score.beatmapset.artist} - {score.beatmapset.title} "
+                f"[{score.beatmap.version}] +{mods_str}",
+                icon_url=f"https://a.ppy.sh/{score.user_id}",
+                url=f"https://osu.ppy.sh/scores/{score_dict['score_id']}"
+            )
+        else:
+            em.set_author(name="SCORE NOT FOUND")
+
+        em.add_field(
+            name="REASON",
+            value=f"{score_dict['err']}"
+        )
 
         return em
 
