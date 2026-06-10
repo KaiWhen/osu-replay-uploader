@@ -2,6 +2,8 @@ from discord.ext import commands, tasks
 from src.db.notifications import get_unsent, mark_sent
 from src.config import DISCORD_NOTIFICATION_CHANNEL
 
+TEST_CHANNEL_ID=1514284145411621085
+
 
 class Notifications(commands.Cog):
     def __init__(self, bot):
@@ -16,7 +18,7 @@ class Notifications(commands.Cog):
 
     @tasks.loop(minutes=1)
     async def notification_loop(self):
-        channel = self.bot.get_channel(DISCORD_NOTIFICATION_CHANNEL)
+        channel = self.bot.get_channel(TEST_CHANNEL_ID)
         notifications = await get_unsent(self.bot.db)
         for notif in notifications:
             await channel.send(f"https://youtu.be/{notif['video_id']}")

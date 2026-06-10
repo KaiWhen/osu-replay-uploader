@@ -19,8 +19,8 @@ class Bot(commands.Bot):
         await self.load_extension("src.bot.cogs.general")
         await self.load_extension("src.bot.cogs.requests")
         # await self.load_extension("src.bot.cogs.skins")
-        # await self.load_extension("src.bot.cogs.notifications")
-        # await self.load_extension("src.bot.cogs.jobs_feed")
+        await self.load_extension("src.bot.cogs.notifications")
+        await self.load_extension("src.bot.cogs.jobs_feed")
         
         await self.tree.sync()
 

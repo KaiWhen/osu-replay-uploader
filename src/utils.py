@@ -126,8 +126,8 @@ async def map_difficulty_to_str(score_obj, mods: list[str], acc: float) -> tuple
     sr_string = star_rating if star_rating > 0 else base_star_rating
 
     ar, od, cs, bpm = calc_map_difficulty(base_ar, base_od, base_cs, base_bpm, mods)
-    ar_str = str(ar) if len(mods) == 0 else f"{base_ar} ({ar})"
-    od_str = str(od) if len(mods) == 0 else f"{base_od} ({od})"
+    ar_str = str(ar) if len(difficulty_mods) == 0 else f"{base_ar} ({ar})"
+    od_str = str(od) if len(difficulty_mods) == 0 else f"{base_od} ({od})"
     cs_str = str(cs) if 'EZ' not in mods and 'HR' not in mods else f"{base_cs} ({cs})"
     has_speed_mod = any(mod in SPEED_MODS for mod in mods)
     bpm_str = f"{base_bpm} ({bpm})" if has_speed_mod else str(bpm)

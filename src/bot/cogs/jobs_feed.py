@@ -46,7 +46,7 @@ class JobsFeed(commands.Cog):
                     hash = self.embed_hash(embed)
                     if job['discord_message_hash'] == hash:
                         continue
-                    await message.edit(content="**New score found**", embed=embed)
+                    await message.edit(embed=embed)
                     await self.bot.db['jobs'].update_one(
                         {"_id": job["_id"]},
                         {"$set": {
@@ -75,15 +75,6 @@ class JobsFeed(commands.Cog):
             f"[{score.beatmap.version}] +{mods_str}",
             value=f"*Stage*: {job['type'].upper()} ▸ *Attempt*: {job['attempts']}"
         )
-        # em.add_field(
-        #    name=f"Stage",
-        #    value=f"{job['type']}"
-        #)
-        #em.add_field(
-        #    name=f"Attempt",
-        #    value=f"{job['attempts']}",
-        #    inline=True
-        #)
         em.set_image(url=f"https://assets.ppy.sh/beatmaps/{score.beatmapset.id}/covers/card.jpg")
         em.set_footer(text=f"{job['_id']}")
         return em
@@ -115,27 +106,6 @@ class JobsFeed(commands.Cog):
     @jobs_feed_loop.before_loop
     async def before_loop(self):
         await self.bot.wait_until_ready()
-
-
-    @app_commands.command(name="testjobembed", description="test")
-    async def jobembed(self, interaction: Interaction):
-        channel = self.bot.get_channel(1106553041836052501)
-        active_jobs = await get_ongoing_jobs(self.bot.db)
-        for job in active_jobs:
-            if job['discord_message_id'] < 0:
-                embed = await self._build_job_embed(job)
-                message = await channel.send(content="**New score found**", embed=embed)
-                await self.bot.db['jobs'].update_one(
-                    {"_id": job["_id"]},
-                    {"$set": {"discord_message_id": message.id}}
-                )
-            else:
-                try:
-                    message = await channel.fetch_message(job['discord_message_id'])
-                    embed = await self._build_job_embed(job)
-                    await message.edit(content="**New score found**", embed=embed)
-                except discord.NotFound:
-                    pass
 
 
 async def setup(bot):

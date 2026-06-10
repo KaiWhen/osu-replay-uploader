@@ -18,14 +18,16 @@ class Requests(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.form_loop.start()
+        self.check_request_loop.start()
 
 
     def cog_unload(self) -> tasks.Coroutine[tasks.Any, tasks.Any, None]:
         self.form_loop.cancel()
+        self.check_request_loop.cancel()
         return super().cog_unload()
 
 
-    @tasks.loop(minutes=1)
+    @tasks.loop(minutes=5)
     async def form_loop(self):
         channel = self.bot.get_channel(TEST_CHANNEL_ID)
         scores = await get_form_resp()
@@ -37,32 +39,39 @@ class Requests(commands.Cog):
     
 
     @tasks.loop(seconds=5)
-    async def request_loop(self):
-        pending_requests = get_pending_requests(self.bot.db)
+    async def check_request_loop(self):
+        pending_requests = await get_pending_requests(self.bot.db)
         channel = self.bot.get_channel(TEST_CHANNEL_ID)
         for req in pending_requests:
             message = await channel.fetch_message(req['message_id'])
             reactions = message.reactions
             for r in reactions:
                 if str(r.emoji) == "✅":
-                    if r.normal_count >= VOTES_REQUIRED - 1:
+                    if r.normal_count >= VOTES_REQUIRED + 1:
                         score_id = req['score_id']
-                        score_data = await get_score_data(score_id)
-                        await insert_score(self.bot.db, score_data)
-                        await enqueue(self.bot.db, "render", score_id, {"score_id": score_id})
+                        # score_data = await get_score_data(score_id)
+                        # await insert_score(self.bot.db, score_data)
+                        # await enqueue(self.bot.db, "render", score_id, {"score_id": score_id})
                         await resolve_request(self.bot.db, req['_id'])
-                        return await channel.send("**Replay queued for upload ✅**")
+                        await message.edit(content="**Replay queued for upload ✅**")
+                        break
                 elif str(r.emoji) == "❌":
-                    if r.normal_count >= VOTES_REQUIRED - 1:
+                    if r.normal_count >= VOTES_REQUIRED + 1:
                         await resolve_request(self.bot.db, req['_id'])
-                        return await channel.send("rip bozo")
+                        await message.edit(content="❌ rip bozo")
+                        break
+            remaining_reqs = await get_pending_requests(self.bot.db)
+            if len(remaining_reqs) == 0:
+                self.check_request_loop.cancel()
+                return
 
 
     async def _handle_request(self, channel, score_dict):
         score_id = score_dict['score_id']
         try:
             score = await self.bot.osu.score(score_id=score_id)
-        except:
+        except Exception as e:
+            print(e)
             score = None
 
         if not score_dict['valid']:
@@ -89,36 +98,8 @@ class Requests(commands.Cog):
         score_description = f"""{username} | {score.beatmapset.artist} - {score.beatmapset.title}
         [{score.beatmap.version}]"""
         await insert_request(self.bot.db, score_id, score_description, message.id)
-
-        # yes_count = no_count = 0
-        # reacted_users = []
-
-        # def check(reaction, user):
-        #     return (
-        #         reaction.message.id == message.id
-        #         and str(reaction.emoji) in ["✅", "❌"]
-        #         and user.id not in reacted_users
-        #     )
-
-        # while yes_count < VOTES_REQUIRED and no_count < VOTES_REQUIRED:
-        #     try:
-        #         reaction, user = await self.bot.wait_for('reaction_add', timeout=86400, check=check)
-        #         reacted_users.append(user.id)
-        #         if str(reaction.emoji) == "✅":
-        #             yes_count += 1
-        #         else:
-        #             no_count += 1
-        #     except asyncio.TimeoutError:
-        #         await channel.send(f"Request for score {score_id} timed out.")
-        #         return
-
-        # if yes_count == VOTES_REQUIRED:
-        #     score_data = await get_score_data(score_id)
-        #     await insert_score(self.bot.db, score_data)
-        #     await enqueue(self.bot.db, "render", score_id, {"score_id": score_id})
-        #     await channel.send("**Replay queued for upload ✅**")
-        # else:
-        #     await channel.send("rip bozo")
+        if not self.check_request_loop.is_running():
+            self.check_request_loop.start()
 
 
     async def _build_embed(self, score, beatmap_scores) -> discord.Embed:
@@ -188,6 +169,11 @@ class Requests(commands.Cog):
 
 
     @form_loop.before_loop
+    async def before_loop(self):
+        await self.bot.wait_until_ready()
+
+
+    @check_request_loop.before_loop
     async def before_loop(self):
         await self.bot.wait_until_ready()
 
