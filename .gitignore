@@ -3,6 +3,8 @@ videos/
 replays/
 tokens/
 
+scripts/test.py
+
 !thumbnails/
 thumbnails/*
 !thumbnails/assets/

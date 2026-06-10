@@ -1,7 +1,7 @@
 from datetime import datetime
 from src.clients import get_forms, osu
 from src.db.scores import get_score
-from src.db.status import get_status
+from src.db.status import get_status, update_status
 from src.db.mongo import db
 from src.services.drive import download_file
 from src.utils import to_rfc3339
@@ -9,8 +9,8 @@ from src.config import FORM_ID, FORM_SCORE_ANSWER_ID, FORM_FILE_ANSWER_ID, COUNT
 
 
 async def get_form_resp():
-    update_status = await get_status(db, COUNTRY_CODE)
-    last_updated_timestamp = update_status['form_updated']
+    status = await get_status(db, COUNTRY_CODE)
+    last_updated_timestamp = status['form_updated']
     last_updated_rfc3339 = to_rfc3339(last_updated_timestamp)
     forms_service = get_forms()
     result = forms_service.forms().responses().list(
@@ -25,7 +25,7 @@ async def get_form_resp():
         score_id = resp['answers'][FORM_SCORE_ANSWER_ID]['textAnswers']['answers'][0]['value']
         file_answer = None
         file_id = None
-        if resp['answers'][FORM_FILE_ANSWER_ID]:
+        if FORM_FILE_ANSWER_ID in resp['answers']:
             file_answer = resp['answers'][FORM_FILE_ANSWER_ID]['fileUploadAnswers']['answers'][0]
             file_id = file_answer['fileId']
 
@@ -35,10 +35,11 @@ async def get_form_resp():
             'valid': False,
             'err': None
         }
-        score_obj = await osu.score(score_id=score_id)
-        if not score_obj:
+        try:
+            score_obj = await osu.score(score_id=score_id)
+        except:
             score['err'] = "Invalid score ID."
-            scores.add(score)
+            scores.append(score)
             continue
         score_exists = await get_score(db, {'score_id': score_obj.id})
         if score_exists:
@@ -66,6 +67,6 @@ async def get_form_resp():
 
     now = datetime.now()
     timestamp_now = datetime.timestamp(now)
-    # await update_status(COUNTRY_CODE, {'form_updated': timestamp_now})
+    await update_status(db, COUNTRY_CODE, {'form_updated': timestamp_now})
 
     return scores

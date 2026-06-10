@@ -34,7 +34,7 @@ async def get_top_scores() -> list[int]:
         for score in scores_top10:
             if not score:
                 continue
-            if datetime.timestamp(score.created_at) - status['last_updated'] < 0:
+            if datetime.timestamp(score.ended_at) - status['last_updated'] < 0:
                 continue
             if not score.replay:
                 continue
@@ -52,7 +52,7 @@ async def get_top_scores() -> list[int]:
             now = datetime.now()
             timestamp = datetime.timestamp(now)
             if (not score
-               or datetime.timestamp(score.created_at) - status['last_updated'] < 0
+               or datetime.timestamp(score.ended_at) - status['last_updated'] < 0
                or not score.replay
                or timestamp - datetime.timestamp(score.beatmap.beatmapset().ranked_date) < 432000
                or score.beatmap.difficulty_rating < 4

@@ -8,7 +8,7 @@ from zipfile import ZipFile
 from PIL import Image, ImageFont, ImageDraw
 from src.clients import osu
 from src.config import THUMBNAILS_DIR
-from src.utils import get_map_country_rank, sort_mods
+from src.utils import download_map, get_map_country_rank, sort_mods
 
 
 async def create_thumbnail(score_id: int) -> str:
@@ -165,16 +165,14 @@ async def get_map_bg(set_id: int, diff: str) -> str:
     if not os.path.exists(f"maps/{set_id}"):
         os.mkdir(f"maps/{set_id}")
     
-    map_file = await _download_map(set_id)
-
-    with open(f"maps/{set_id}/map.osz", 'wb') as outfile:
-        outfile.write(map_file)
-
-    with ZipFile(f"maps/{set_id}/map.osz", 'r') as zip_ref:
-        zip_ref.extractall(f"maps/{set_id}")
-
     bg_path = None
     backup_bg_path = THUMBNAILS_DIR / "assets/default.png"
+
+    try:
+        await download_map(set_id)
+    except Exception as e:
+        sys.stdout.write(f"Error downloading map: {e}")
+        return backup_bg_path
 
     special_chars = "\":@%^*?=,<>/|"
     diff_name = diff.casefold()
@@ -212,16 +210,7 @@ async def get_map_bg(set_id: int, diff: str) -> str:
     return bg_path
 
 
-async def _download_map(set_id: int):
-    urls = [
-        f"https://catboy.best/d/{set_id}",
-        f"https://beatconnect.io/b/{set_id}",
-    ]
-    async with aiohttp.ClientSession() as session:
-        for url in urls:
-            async with session.get(url) as r:
-                if r.ok:
-                    return await r.read()
+
 
 
 async def test():

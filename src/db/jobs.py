@@ -75,10 +75,3 @@ async def recover_stale_jobs(db):
             "next_retry_at": datetime.now(timezone.utc),
         }},
     )
-
-from src.db.mongo import db
-async def test():
-    await enqueue(db, "render", 6826296045, "test")
-
-import asyncio
-# asyncio.run(test())

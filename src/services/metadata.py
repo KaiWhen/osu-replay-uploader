@@ -58,7 +58,7 @@ async def configure_metadata(score_id: int):
 
 
 async def _create_description(score_obj, user_obj, acc: float, mods: list[str]) -> str:
-    ar_str, od_str, cs_str, bpm_str, sr_string = map_difficulty_to_str(score_obj, mods, acc)
+    ar_str, od_str, cs_str, bpm_str, sr_string = await map_difficulty_to_str(score_obj, mods, acc)
     user_stats = user_obj.statistics
     global_rank = user_stats.global_rank
     country_rank = user_stats.country_rank

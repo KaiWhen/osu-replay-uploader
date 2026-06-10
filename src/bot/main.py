@@ -17,7 +17,7 @@ class Bot(commands.Bot):
         self.db = db
         self.osu = osu
         await self.load_extension("src.bot.cogs.general")
-        await self.load_extension("src.bot.cogs.approvals")
+        await self.load_extension("src.bot.cogs.requests")
         # await self.load_extension("src.bot.cogs.skins")
         # await self.load_extension("src.bot.cogs.notifications")
         # await self.load_extension("src.bot.cogs.jobs_feed")

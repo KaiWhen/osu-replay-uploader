@@ -8,6 +8,8 @@ from src.db.jobs import get_ongoing_jobs
 from src.config import DISCORD_APPROVAL_CHANNEL_ID
 from src.utils import sort_mods
 
+TEST_CHANNEL_ID = 1513692244291620904
+
 
 class JobsFeed(commands.Cog):
     def __init__(self, bot):
@@ -23,7 +25,7 @@ class JobsFeed(commands.Cog):
     @tasks.loop(seconds=15)
     async def jobs_feed_loop(self):
         #channel = self.bot.get_channel(DISCORD_APPROVAL_CHANNEL_ID)
-        channel = self.bot.get_channel(1106553041836052501)
+        channel = self.bot.get_channel(TEST_CHANNEL_ID)
         active_jobs = await get_ongoing_jobs(self.bot.db)
         for job in active_jobs:
             if job['discord_message_id'] < 0:
