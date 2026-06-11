@@ -1,3 +1,4 @@
+import asyncio
 import sys
 from datetime import datetime
 from src.clients import osu
@@ -39,6 +40,8 @@ async def get_top_scores() -> list[int]:
             if not score.replay:
                 continue
             valid_scores.append(score.id)
+        
+        # await asyncio.sleep(1)
 
         # get player's recent 50
         try:
@@ -62,6 +65,8 @@ async def get_top_scores() -> list[int]:
             score_obj = osu.score(score_id=score.id)
             if score_obj.rank_global == 1:
                 valid_scores.append(score.id)
+        
+        # await asyncio.sleep(1)
 
     now = datetime.now()
     timestamp = datetime.timestamp(now)

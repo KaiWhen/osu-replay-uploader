@@ -8,7 +8,7 @@ from src.config import ADMIN_USER_ID
 class Skins(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-    
+
 
     @app_commands.command(name="setskin", description="Set skin for player")
     async def set_skin(self, interaction: discord.Interaction, osu_name: str, skin_id: str):

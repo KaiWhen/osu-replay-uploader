@@ -2,9 +2,12 @@ import asyncio
 import os
 from pymongo.asynchronous.database import AsyncDatabase
 from src.db.jobs import claim_next_job, fail_job, complete_job, enqueue
+from src.services.metadata import configure_metadata
 from src.services.score import get_replay_data
-from src.services.render import submit_render
+from src.services.render import submit_render, wait_for_render
 from src.config import WORKER_POLL_INTERVAL, REPLAYS_DIR
+from src.services.thumbnail import create_thumbnail
+from src.services.video import download_video
 
 
 async def render_worker(db: AsyncDatabase):
@@ -29,7 +32,12 @@ async def render_worker(db: AsyncDatabase):
             if not render_id:
                 await fail_job(db, job["_id"], "Render submit failed")
                 continue
-            await complete_job(db, job["_id"], {"render_id": render_id})
-            await enqueue(db, "poll_render", score_id, {"render_id": render_id})
+            await wait_for_render(render_id)
+            video_path = await download_video(render_id, score_id)
+            thumb_path = await create_thumbnail(score_id)
+            options = await configure_metadata(score_id, video_path)
+            options['thumb_path'] = thumb_path
+            await complete_job(db, job["_id"])
+            await enqueue(db, "upload", score_id, {"options": options})
         except Exception as e:
             await fail_job(db, job["_id"], str(e))

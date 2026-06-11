@@ -37,10 +37,14 @@ DISCORD_APPROVAL_CHANNEL_ID = 1110508875238604871
 # DISCORD_JOBS_FEED_CHANNEL_ID = 0
 
 # o!rdr
-ORDR_API_URL = "https://apis.issou.best/ordr/renders"
+ORDR_BASE_API_URL = "https://apis.issou.best"
+ORDR_WS_PATH = "/ordr/ws"
+ORDR_SKIN_PATH = "/ordr/skins/custom"
+ORDR_DL_LINK_PATH = "/dynlink/ordr/gen"
+ORDR_RENDER_PATH = "/ordr/renders"
 # ORDR_KEY = os.environ["ORDR_KEY"]
+ORDR_KEY = "devmode_success"
 DEFAULT_SKIN_ID = "7496"
-SKIN_URL = "https://apis.issou.best/ordr/skins/custom"
 
 # worker
 WORKER_POLL_INTERVAL = 30

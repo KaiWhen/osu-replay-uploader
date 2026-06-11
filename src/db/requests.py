@@ -3,11 +3,12 @@ from pymongo.asynchronous.database import AsyncDatabase
 from pymongo.asynchronous.cursor import AsyncCursor
 
 
-async def insert_request(db: AsyncDatabase, score_id: int, description: str, message_id: int):
+async def insert_request(db: AsyncDatabase, score_id: int, description: str, message_id: int, file_id: str = None):
     await db['requests'].insert_one({
         'score_id': score_id,
         'description': description,
         'message_id': message_id,
+        'file_id': file_id,
         'resolved': False
     })
 

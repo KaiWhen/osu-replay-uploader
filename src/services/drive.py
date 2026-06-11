@@ -1,4 +1,5 @@
 import asyncio
+import sys
 import aiohttp
 import aiofiles
 import re
@@ -21,7 +22,7 @@ async def _save_response(response: aiohttp.ClientResponse, destination: str):
     match = re.findall('filename="(.+)"', content_disposition)
     filename = match[0] if match else destination
 
-    print(f"[+] Downloading {filename}")
+    sys.stdout.write(f"[+] Downloading {filename}")
 
     async with aiofiles.open(destination, "wb") as f:
         async for chunk in response.content.iter_chunked(CHUNK_SIZE):

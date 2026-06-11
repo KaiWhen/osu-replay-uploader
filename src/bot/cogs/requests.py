@@ -5,6 +5,7 @@ from discord.ext import commands, tasks
 from src.db.jobs import enqueue
 from src.db.scores import insert_score
 from src.db.requests import insert_request, get_pending_requests, resolve_request
+from src.services.drive import delete_file
 from src.services.score import get_score_data
 from src.services.forms import get_form_resp
 from src.config import DISCORD_APPROVAL_CHANNEL_ID
@@ -27,7 +28,7 @@ class Requests(commands.Cog):
         return super().cog_unload()
 
 
-    @tasks.loop(minutes=5)
+    @tasks.loop(minutes=1)
     async def form_loop(self):
         channel = self.bot.get_channel(TEST_CHANNEL_ID)
         scores = await get_form_resp()
@@ -36,6 +37,7 @@ class Requests(commands.Cog):
 
         for score in scores:
             await self._handle_request(channel, score)
+            await asyncio.sleep(2)
     
 
     @tasks.loop(seconds=5)
@@ -53,12 +55,14 @@ class Requests(commands.Cog):
                         # await insert_score(self.bot.db, score_data)
                         # await enqueue(self.bot.db, "render", score_id, {"score_id": score_id})
                         await resolve_request(self.bot.db, req['_id'])
-                        await message.edit(content="**Replay queued for upload ✅**")
+                        await message.edit(content="## **Replay queued for upload ✅**")
                         break
                 elif str(r.emoji) == "❌":
                     if r.normal_count >= VOTES_REQUIRED + 1:
                         await resolve_request(self.bot.db, req['_id'])
-                        await message.edit(content="❌ rip bozo")
+                        if req['file_id']:
+                            delete_file(req['file_id'])
+                        await message.edit(content="## ❌ rip bozo")
                         break
             remaining_reqs = await get_pending_requests(self.bot.db)
             if len(remaining_reqs) == 0:
@@ -70,8 +74,7 @@ class Requests(commands.Cog):
         score_id = score_dict['score_id']
         try:
             score = await self.bot.osu.score(score_id=score_id)
-        except Exception as e:
-            print(e)
+        except:
             score = None
 
         if not score_dict['valid']:
@@ -89,7 +92,7 @@ class Requests(commands.Cog):
         embed = await self._build_embed(score, beatmap_scores)
         username = score._user.username
         message = await channel.send(
-            content=f"**Replay upload request for score by {username}**",
+            content=f"## **Replay upload request for score by {username}**",
             embed=embed
         )
         await message.add_reaction("✅")
@@ -97,7 +100,7 @@ class Requests(commands.Cog):
 
         score_description = f"""{username} | {score.beatmapset.artist} - {score.beatmapset.title}
         [{score.beatmap.version}]"""
-        await insert_request(self.bot.db, score_id, score_description, message.id)
+        await insert_request(self.bot.db, score_id, score_description, message.id, score_dict['file_id'])
         if not self.check_request_loop.is_running():
             self.check_request_loop.start()
 

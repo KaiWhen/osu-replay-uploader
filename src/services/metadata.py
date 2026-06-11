@@ -1,12 +1,12 @@
 import asyncio
 import math
+from pathlib import Path
 from src.clients import osu
 from src.config import COUNTRY_CODE
-from src.utils import calc_map_difficulty, get_difficulty_mods, calc_sr, map_difficulty_to_str, sort_mods
-from src.utils import SPEED_MODS
+from src.utils import map_difficulty_to_str, sort_mods
 
 
-async def configure_metadata(score_id: int):
+async def configure_metadata(score_id: int, video_path: Path):
     score_obj = osu.score(score_id=score_id)
     user_obj = osu.user(user=score_obj.user_id, mode="osu")
     username = score_obj._user.username
@@ -47,7 +47,7 @@ async def configure_metadata(score_id: int):
         title = f"{title} {pp}PP"
 
     return {
-        "file": f"videos/{score_id}.mp4",
+        "file": video_path,
         "title": f"{title}",
         "description": f"{description}",
         "tags": f"osu!,osu ireland,{username},{tag_title} osu",
@@ -83,19 +83,10 @@ async def _create_description(score_obj, user_obj, acc: float, mods: list[str]) 
         "",
         "osu!Irish Discord: https://discord.gg/ZV2wshG538",
         "",
+        "Videos are rendered using https://ordr.issou.best/",
+        "",
         "",
         f"#{user_obj.username} #osuireland",
     ]
 
     return "\n".join(description)
-
-
-async def _test():
-    score_obj = await osu.score(score_id=1789765517)
-    mods = [mod.acronym for mod in score_obj.mods]
-    acc = math.floor(score_obj.accuracy * 10000) / 100
-    calc_sr(score_obj, mods, acc)
-
-
-asyncio.run(_test())
-

@@ -4,7 +4,6 @@ import aiohttp
 import asyncio
 import math
 import re
-from zipfile import ZipFile
 from PIL import Image, ImageFont, ImageDraw
 from src.clients import osu
 from src.config import THUMBNAILS_DIR
@@ -19,7 +18,7 @@ async def create_thumbnail(score_id: int) -> str:
 
     set_id = score_obj.beatmapset.id
     diff = score_obj.beatmap.version
-    bg_path = await asyncio.to_thread(get_map_bg, set_id, diff)
+    bg_path = await get_map_bg(set_id, diff)
 
     if not os.path.exists(THUMBNAILS_DIR / str(score_id)):
         os.mkdir(THUMBNAILS_DIR / str(score_id))
@@ -32,7 +31,7 @@ async def create_thumbnail(score_id: int) -> str:
             avatar_data = await r.read()
             avatar_path = THUMBNAILS_DIR / str(score_id) / f"{user_id}.png"
             with open(avatar_path, 'wb') as outfile:
-                outfile.write(avatar_data.content)
+                outfile.write(avatar_data)
 
     ratio = 1.5
 
@@ -88,7 +87,7 @@ async def create_thumbnail(score_id: int) -> str:
     if score_obj.max_combo == score_obj.beatmap.max_combo:
         is_fc_text = "FC"
         fc_text_colour = (255, 235, 122)
-    elif score_obj.statistics.miss > 0:
+    elif score_obj.statistics.miss and score_obj.statistics.miss > 0:
         is_fc_text = f"{score_obj.statistics.miss}x"
         fc_text_colour = (255, 0, 0)
 
@@ -210,12 +209,9 @@ async def get_map_bg(set_id: int, diff: str) -> str:
     return bg_path
 
 
-
-
-
 async def test():
-    score_obj = await osu.score(score_id=1789765517)
-    bg = await get_map_bg(250309, score_obj.beatmap.version)
-    print(bg)
+    # score_obj = await osu.score(score_id=1789765517)
+    thumb_path = await create_thumbnail(1749350671)
+    print(thumb_path)
 
-asyncio.run(test())
+# asyncio.run(test())

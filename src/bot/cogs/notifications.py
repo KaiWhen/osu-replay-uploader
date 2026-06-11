@@ -1,6 +1,6 @@
 from discord.ext import commands, tasks
 from src.db.notifications import get_unsent, mark_sent
-from src.config import DISCORD_NOTIFICATION_CHANNEL
+from src.config import DISCORD_NOTIFICATION_CHANNEL_ID
 
 TEST_CHANNEL_ID=1514284145411621085
 

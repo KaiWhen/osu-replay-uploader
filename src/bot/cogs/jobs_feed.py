@@ -1,3 +1,4 @@
+import asyncio
 import discord
 import json
 import hashlib
@@ -55,6 +56,7 @@ class JobsFeed(commands.Cog):
                     )
                 except discord.NotFound:
                     pass
+            await asyncio.sleep(2)
 
 
     async def _build_job_embed(self, job):
