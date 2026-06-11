@@ -20,13 +20,12 @@ async def get_top100() -> list[int]:
 
 async def get_top_scores() -> list[int]:
     status = await get_status(db, COUNTRY_CODE)
-
-    top100 = get_top100()
+    top100 = await get_top100()
     valid_scores = []
     for player in top100:
         # get player's top 10
         try:
-            scores_top10 = osu.user_scores(user_id=player, type="best", limit=10, mode="osu")
+            scores_top10 = await osu.user_scores(user_id=player, type="best", limit=10, mode="osu")
         except Exception as e:
             sys.stdout.write(e)
             continue
@@ -45,7 +44,7 @@ async def get_top_scores() -> list[int]:
 
         # get player's recent 50
         try:
-            scores_recent50 = osu.user_scores(user_id=player, type="recent", limit=50, mode="osu")
+            scores_recent50 = await osu.user_scores(user_id=player, type="recent", limit=50, mode="osu")
         except Exception as e:
             sys.stdout.write(e)
             continue
@@ -55,14 +54,16 @@ async def get_top_scores() -> list[int]:
             now = datetime.now()
             timestamp = datetime.timestamp(now)
             if (not score
-               or datetime.timestamp(score.ended_at) - status['last_updated'] < 0
-               or not score.replay
-               or timestamp - datetime.timestamp(score.beatmap.beatmapset().ranked_date) < 432000
-               or score.beatmap.difficulty_rating < 4
-               or not score.passed
-               or score.id in valid_scores):
+                or datetime.timestamp(score.ended_at) - status['last_updated'] < 0
+                or not score.replay
+                or score.beatmap.difficulty_rating < 4
+                or not score.passed
+                or score.id in valid_scores):
+                    continue
+            beatmapset = await score.beatmap.beatmapset()
+            if timestamp - datetime.timestamp(beatmapset.ranked_date) < 432000:
                 continue
-            score_obj = osu.score(score_id=score.id)
+            score_obj = await osu.score(score_id=score.id)
             if score_obj.rank_global == 1:
                 valid_scores.append(score.id)
         
@@ -70,9 +71,9 @@ async def get_top_scores() -> list[int]:
 
     now = datetime.now()
     timestamp = datetime.timestamp(now)
-    await update_status(db, COUNTRY_CODE, {
-        "last_updated": timestamp
-    })
+    #await update_status(db, COUNTRY_CODE, {
+    #    "last_updated": timestamp
+    #})
 
     return valid_scores
 
@@ -103,3 +104,10 @@ async def get_replay_data(score_id: int):
     except Exception as e:
         sys.stdout.write(f"Replay download failed for {score_id}: {e}")
         return None
+
+
+async def test():
+    score_ids = await get_top_scores()
+    print(score_ids)
+
+# asyncio.run(test())
