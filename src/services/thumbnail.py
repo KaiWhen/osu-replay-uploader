@@ -4,10 +4,10 @@ import aiohttp
 import asyncio
 import math
 import re
-from PIL import Image, ImageFont, ImageDraw
+from PIL import Image, ImageFont, ImageDraw, ImageFilter
 from src.clients import osu
 from src.config import THUMBNAILS_DIR
-from src.utils import download_map, get_map_country_rank, sort_mods
+from src.utils import calc_bpm, calc_sr, download_map, get_map_country_rank, sort_mods
 
 
 async def create_thumbnail(score_id: int) -> str:
@@ -19,12 +19,15 @@ async def create_thumbnail(score_id: int) -> str:
     set_id = score_obj.beatmapset.id
     diff = score_obj.beatmap.version
     bg_path = await get_map_bg(set_id, diff)
+    # bg_path = "maps/1616029/bg.jpg"
 
     if not os.path.exists(THUMBNAILS_DIR / str(score_id)):
         os.mkdir(THUMBNAILS_DIR / str(score_id))
 
     rank = score_obj.rank.__str__()[6:]
     user_id = score_obj.user_id
+    status_string = score_obj.beatmap.status.__str__()[11:]
+    mods = [mod.acronym for mod in score_obj.mods]
 
     async with aiohttp.ClientSession() as session:
         async with session.get(f"https://a.ppy.sh/{user_id}") as r:
@@ -36,11 +39,12 @@ async def create_thumbnail(score_id: int) -> str:
     ratio = 1.5
 
     thumbnail = Image.open(bg_path).convert('RGBA').resize((1280, 720))
-    base = Image.open("thumbnails/assets/base.png").convert('RGBA').resize((1280, 720))
-    rank_image = Image.open(f"thumbnails/assets/{rank}.png").convert('RGBA').resize((1280, 720))
-    dim_image = Image.open(f"thumbnails/assets/dim.png").convert('RGBA').resize((1280, 720))
+    base = Image.open("thumbnails/assets/base.png").convert('RGBA')
+    rank_image = Image.open(f"thumbnails/assets/ranks/{rank}.png").convert('RGBA')
+    sr_image = Image.open(f"thumbnails/assets/sr_graphic/{status_string}.png").convert('RGBA')
     avatar = Image.open(avatar_path).convert('RGBA').resize((round(256/ratio), round(256/ratio)))
-    pb_image = Image.open("thumbnails/assets/pb.png").convert('RGBA').resize((1280, 720))
+    pb_image = Image.open("thumbnails/assets/pb.png").convert('RGBA')
+    fc_image = Image.open("thumbnails/assets/FC.png").convert('RGBA')
     
     bg_w, _ = thumbnail.size
 
@@ -55,8 +59,7 @@ async def create_thumbnail(score_id: int) -> str:
         count = count + 1
 
     acc = math.floor(score_obj.accuracy * 10000) / 100
-    acc_text_before = f"{'%.2f' % acc}%"
-    acc_text = f"{'%.2f' % acc}% | "
+    acc_text = f"{'%.2f' % acc}%"
     username_text = f"{user_obj.username}"
 
     if country_ranking > 0:
@@ -69,95 +72,294 @@ async def create_thumbnail(score_id: int) -> str:
     global_ranking_text = f"#{score_obj.rank_global}"
     global_rank_text = f"#{user_obj.statistics.global_rank}"
 
-    move_diff_y = 0
-
     title_text = f"{score_obj.beatmapset.artist} - {score_obj.beatmapset.title}"
-    title_font_size = 50
-    if len(title_text) > 45:
-        move_diff_y = 10
-        title_font_size = title_font_size - round((len(title_text) - 45) / 1.6)
+    if len(title_text) > 46:
+        title_text = title_text[:43] + "..."
 
     diff_text = f"[{score_obj.beatmap.version}]"
-    diff_font_size = 50
-    if len(diff_text) > 45:
-        diff_font_size = diff_font_size - round((len(diff_text) - 45) / 1.6)
+    if len(diff_text) > 32:
+        diff_text = diff_text[:28] + "...]"
 
-    is_fc_text = ""
-    fc_text_colour = (255, 255, 255)
+    miss_text = ""
+    miss_text_colour = (255, 255, 255)
     if score_obj.max_combo == score_obj.beatmap.max_combo:
-        is_fc_text = "FC"
-        fc_text_colour = (255, 235, 122)
+        miss_text = "FC"
     elif score_obj.statistics.miss and score_obj.statistics.miss > 0:
-        is_fc_text = f"{score_obj.statistics.miss}x"
-        fc_text_colour = (255, 0, 0)
+        miss_text = f"{score_obj.statistics.miss}x"
+        miss_text_colour = (181, 55, 85)
+
+    base_star_rating = round(score_obj.beatmap.difficulty_rating, 2)
+    sr_text = f"{base_star_rating}"
+    sr, pp = await calc_sr(score_obj, mods, acc)
+    if sr > 0:
+        sr_text = f"{sr}"
 
     pp_text = "0pp"
-    status_string = score_obj.beatmap.status.__str__()[11:]
     if status_string in ['RANKED', 'APPROVED']:
         pp_text = f"{round(score_obj.pp)}pp"
     elif status_string == 'LOVED':
-        pp_text = "Loved"
-    acc_pp_text = f"{acc_text} | {pp_text}"
+        pp_text = f"{round(pp)}pp"
 
-    if len(acc_text_before) > 6:
-        pp_offset = round(390/ratio)
-    else:
-        pp_offset = round(340/ratio)
+    base_bpm = score_obj.beatmap.bpm
+    bpm = calc_bpm(base_bpm, mods)
+    bpm_text = f"{round(bpm)}bpm"
 
-    futura_medium = THUMBNAILS_DIR / "assets/futura_medium.ttf"
-    nexa_heavy = THUMBNAILS_DIR / "assets/Nexa-Heavy.ttf"
+    futura_medium = THUMBNAILS_DIR / "assets/fonts/futura_medium.ttf"
+    nexa_heavy = THUMBNAILS_DIR / "assets/fonts/Nexa-Heavy.ttf"
+    google_flex_regular = THUMBNAILS_DIR / "assets/fonts/GoogleSansFlex-Regular.ttf"
+    google_flex_medium = THUMBNAILS_DIR / "assets/fonts/GoogleSansFlex-Medium.ttf"
 
-    title_font = ImageFont.truetype(futura_medium, title_font_size)
-    diff_font = ImageFont.truetype(futura_medium, diff_font_size)
-    acc_font = ImageFont.truetype(futura_medium, 50)
-    pb_font = ImageFont.truetype(nexa_heavy, 35)
-    ie_font = ImageFont.truetype(nexa_heavy, 30)
-    country_font = ImageFont.truetype(nexa_heavy, 47)
-    user_font = ImageFont.truetype(futura_medium, 50)
-    fc_font = ImageFont.truetype(futura_medium, 150)
+    title_font = ImageFont.truetype(futura_medium, 62)
+    diff_font = ImageFont.truetype(futura_medium, 54)
+    acc_font = ImageFont.truetype(google_flex_regular, 62)
+    pp_font = ImageFont.truetype(google_flex_medium, 62)
+    ranking_font = ImageFont.truetype(nexa_heavy, 35)
+    # ie_font = ImageFont.truetype(nexa_heavy, 30)
+    country_font = ImageFont.truetype(nexa_heavy, 42)
+    user_font = ImageFont.truetype(futura_medium, 45)
+    miss_font = ImageFont.truetype(google_flex_medium, 138)
+    bpm_font = ImageFont.truetype(google_flex_medium, 38)
 
-    thumbnail.paste(dim_image, (0, 0), dim_image)
     thumbnail.paste(base, (0, 0), base)
     thumbnail.paste(rank_image, (0, 0), rank_image)
-    thumbnail.paste(avatar, (round(23/ratio), round(795/ratio)), avatar)
+    thumbnail.paste(sr_image, (0, 0), sr_image)
 
-    mods = [mod.acronym for mod in score_obj.mods]
+    thumbnail = apply_drop_shadow(thumbnail, avatar, (11, 533))
+
     sorted_mods = sort_mods(mods)
-    mod_w = round(165/ratio)
+    mod_w = 140
     mods_length = mod_w * (len(mods) - 1)
     mods_offset = (bg_w - mods_length) // 2
     count = 0
     for mod in sorted_mods:
         if mod == 'CL':
             continue
-        mod_image = Image.open(THUMBNAILS_DIR / f"assets/mod_{mod}.png").convert('RGBA').resize((113, 92))
-        thumbnail.paste(mod_image, ((mods_offset + mod_w*count) - 20, round(540/ratio)), mod_image)
+        mod_image = Image.open(THUMBNAILS_DIR / f"assets/mods/mod_{mod}.png").convert('RGBA').resize((150, 122))
+        thumbnail.paste(mod_image, ((mods_offset + mod_w*count) - 20, 430), mod_image)
         count = count + 1
-
+    
+    # sr text
+    thumbnail = draw_text_with_shadow(
+        thumbnail,
+        (623 if len(sr_text) <= 4 else 608, 5),
+        sr_text,
+        (255, 255, 255),
+        font=pp_font
+    )
+    # bpm text
+    thumbnail = draw_text_with_shadow(
+        thumbnail,
+        (1071, 40),
+        bpm_text,
+        (255, 255, 255),
+        font=bpm_font,
+        shadow_offset=(0, 1),
+        shadow_color=(0,0,0,191),
+        shadow_blur=2,
+        letter_spacing=1
+    )
+    # acc text
+    thumbnail = draw_text_with_shadow(
+        thumbnail,
+        (420 if len(pp_text) <= 5 else 400, 310),
+        acc_text,
+        (255, 255, 255),
+        font=acc_font,
+        shadow_color=(0,0,0,170),
+        shadow_blur=8
+    )
+    # pp text
+    thumbnail = draw_text_with_shadow(
+        thumbnail,
+        (668 if len(pp_text) <= 5 else 648, 310),
+        pp_text,
+        (0, 255, 0),
+        font=pp_font,
+        shadow_offset=(0, 8),
+        shadow_color=(0,0,0,170),
+        shadow_blur=8,
+        clone_blur_radius=10,
+        glow_color=(0, 255, 0),
+        glow_opacity=0.5
+    )
+    # diff text
     image = ImageDraw.Draw(thumbnail)
-    _, _, title_w, _ = image.textbbox((0, 0), title_text, font=title_font)
-    image.text(((bg_w - title_w)/2, 120), title_text, (255, 255, 255), font=title_font)
     _, _, diff_w, _ = image.textbbox((0, 0), diff_text, font=diff_font)
-    image.text(((bg_w - diff_w)/2, 180-move_diff_y), diff_text, (255, 255, 255), font=diff_font)
-    _, _, acc_w, _ = image.textbbox((0, 0), acc_pp_text, font=acc_font)
-    image.text(((bg_w - acc_w)/2, round(400/ratio)), acc_text, (255, 255, 255), font=acc_font)
-    image.text(((bg_w - acc_w)/2 + pp_offset, round(400/ratio)), pp_text, (0, 255, 106), font=acc_font)
-
-    image.text((round(305/ratio), round(970/ratio)), username_text, (255, 255, 255), font=user_font)
-    image.text((round(1630/ratio), round(387/ratio)), country_ranking_text, (255, 255, 255), font=ie_font)
-    image.text((round(1630/ratio), round(483/ratio)), global_ranking_text, (255, 255, 255), font=ie_font)
-    image.text((round(394/ratio), round(800/ratio)), country_rank_text, (255, 255, 255), font=country_font)
-    image.text((round(394/ratio), round(890/ratio)), global_rank_text, (255, 255, 255), font=country_font)
-    image.text((round(1480/ratio), round(844/ratio)), is_fc_text, fc_text_colour, font=fc_font)
-
+    thumbnail = draw_text_with_shadow(
+        thumbnail,
+        ((bg_w - diff_w)/2, 210),
+        diff_text,
+        (255, 255, 255),
+        font=diff_font,
+        shadow_offset=(0, 8),
+        shadow_color=(0,0,0,120),
+        shadow_blur=8,
+        letter_spacing=-0.75
+    )
+    # map country ranking text
+    thumbnail = draw_text_with_shadow(
+        thumbnail,
+        (90, 397), 
+        country_ranking_text,
+        (255, 255, 255),
+        font=ranking_font,
+        shadow_color=(0,0,0,100),
+        shadow_blur=2
+    )
+    # map global ranking text
+    thumbnail = draw_text_with_shadow(
+        thumbnail,
+        (90, 320),
+        global_ranking_text,
+        (255, 255, 255),
+        font=ranking_font,
+        shadow_color=(0,0,0,100),
+        shadow_blur=2
+    )
+    # username text
+    thumbnail = draw_text_with_shadow(
+        thumbnail,
+        (204, 653),
+        username_text,
+        (255, 255, 255),
+        font=user_font,
+        shadow_color=(0,0,0,100),
+        shadow_blur=2
+    )
+    # country rank text
+    thumbnail = draw_text_with_shadow(
+        thumbnail,
+        (264, 534), 
+        country_rank_text,
+        (255, 255, 255),
+        font=country_font,
+        shadow_color=(0,0,0,100),
+        shadow_blur=2
+    )
+    # global rank text
+    thumbnail = draw_text_with_shadow(
+        thumbnail,
+        (264, 598),
+        global_rank_text,
+        (255, 255, 255),
+        font=country_font,
+        shadow_color=(0,0,0,100),
+        shadow_blur=2
+    )
     if pb_text:
         thumbnail.paste(pb_image, (0, 0), pb_image)
-        image.text((round(1430/ratio), round(425/ratio)), pb_text, (255, 255, 255), font=pb_font)
+        thumbnail = draw_text_with_shadow(
+            thumbnail,
+            (90, 240),
+            pb_text,
+            (255, 255, 255),
+            font=ranking_font,
+            shadow_color=(0,0,0,100),
+            shadow_blur=2
+        )
+    if miss_text == "FC":
+        thumbnail.paste(fc_image, (0, 0), fc_image)
+    else:
+        thumbnail = draw_text_with_shadow(
+            thumbnail,
+            (23, -10),
+            miss_text,
+            miss_text_colour,
+            font=miss_font,
+            shadow_offset=(0, 4),
+            shadow_color=(0,0,0,170),
+            shadow_blur=8,
+            clone_blur_radius=30,
+            glow_color=miss_text_colour,
+            glow_opacity=1.0,
+            letter_spacing=-1
+        )
+
+    image = ImageDraw.Draw(thumbnail)
+    # title text
+    _, _, title_w, _ = image.textbbox((0, 0), title_text, font=title_font)
+    draw_text_with_spacing(image, ((bg_w - title_w)/2 + 1, 137), title_text, (26, 26, 26), font=title_font, stroke_width=1, spacing=-1)
+    draw_text_with_spacing(image, ((bg_w - title_w)/2, 135), title_text, (255, 255, 255), font=title_font, spacing=-1)
 
     thumb_path = THUMBNAILS_DIR / str(score_id) / f"{score_id}.png"
+    thumbnail = thumbnail.convert('RGB')
     thumbnail.save(thumb_path)
 
     return thumb_path
+
+
+def draw_text_with_spacing(draw, pos, text, fill, font, stroke_fill=(255,255,255), stroke_width=0, spacing=1):
+    x, y = pos
+    for char in text:
+        draw.text((x, y), char, font=font, fill=fill, stroke_fill=stroke_fill, stroke_width=stroke_width)
+        bbox = font.getbbox(char)
+        x += bbox[2] - bbox[0] + spacing
+
+
+def draw_text_with_shadow(
+    base, pos, text, fill, font,
+    shadow_color=(0, 0, 0, 77),
+    shadow_offset=(0, 2),
+    shadow_blur=2,
+    letter_spacing=0,
+    clone_blur_radius=0,
+    glow_color=(255, 255, 255),
+    glow_opacity=1.0
+):
+    x, y = pos
+
+    def render_text_layer(color):
+        layer = Image.new("RGBA", base.size, (0, 0, 0, 0))
+        draw = ImageDraw.Draw(layer)
+        cx = x
+        for char in text:
+            draw.text((cx, y), char, font=font, fill=color)
+            bbox = font.getbbox(char)
+            cx += bbox[2] - bbox[0] + letter_spacing
+        return layer
+
+    text_layer = render_text_layer(fill)
+
+    if clone_blur_radius > 0:
+        _, _, _, a = text_layer.split()
+        a = a.filter(ImageFilter.GaussianBlur(radius=clone_blur_radius))
+        a = a.point(lambda px: int(px * glow_opacity))
+        glow_layer = Image.new("RGBA", base.size, glow_color + (0,))
+        glow_layer.putalpha(a)
+
+    shadow_layer = render_text_layer(shadow_color)
+    shadow_layer = shadow_layer.filter(ImageFilter.GaussianBlur(radius=shadow_blur))
+    shadow_shifted = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    shadow_shifted.paste(shadow_layer, shadow_offset)
+
+    base = Image.alpha_composite(base, shadow_shifted)
+    if clone_blur_radius > 0:
+        base = Image.alpha_composite(base, glow_layer)
+    base = Image.alpha_composite(base, text_layer)
+    return base
+
+
+def apply_drop_shadow(base, img, pos,
+    shadow_color=(0, 0, 0, 70),
+    shadow_offset=(-1, 2),
+    shadow_blur=4
+):
+    _, _, _, a = img.split()
+    shadow_img = Image.new("RGBA", img.size, shadow_color)
+    opacity = shadow_color[3] / 255
+    a_scaled = a.point(lambda px: int(px * opacity))
+    shadow_img.putalpha(a_scaled)
+
+    shadow_layer = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    shadow_layer.paste(shadow_img, (pos[0] + shadow_offset[0], pos[1] + shadow_offset[1]))
+    shadow_layer = shadow_layer.filter(ImageFilter.GaussianBlur(radius=shadow_blur))
+
+    img_layer = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    img_layer.paste(img, pos, img)
+
+    base = Image.alpha_composite(base, shadow_layer)
+    base = Image.alpha_composite(base, img_layer)
+    return base
 
 
 async def get_map_bg(set_id: int, diff: str) -> str:
@@ -167,11 +369,13 @@ async def get_map_bg(set_id: int, diff: str) -> str:
     bg_path = None
     backup_bg_path = THUMBNAILS_DIR / "assets/default.png"
 
-    try:
-        await download_map(set_id)
-    except Exception as e:
-        sys.stdout.write(f"Error downloading map: {e}")
-        return backup_bg_path
+    map_dir = os.listdir(f"maps/{set_id}")
+    if len(map_dir) == 0:
+        try:
+            await download_map(set_id)
+        except Exception as e:
+            sys.stdout.write(f"Error downloading map: {e}")
+            return backup_bg_path
 
     special_chars = "\":@%^*?=,<>/|"
     diff_name = diff.casefold()
@@ -183,7 +387,7 @@ async def get_map_bg(set_id: int, diff: str) -> str:
         if fname.casefold().endswith(f"[{diff_name}].osu"):
             f = open(f"maps/{set_id}/{fname}", 'r')
             file_strings = re.findall('(?:")([^"]*)(?:")', f.read())
-            print(file_strings)
+            # print(file_strings)
             for string in file_strings:
                 if (string.casefold().endswith(".png")
                     or string.casefold().endswith(".jpg")
@@ -212,6 +416,8 @@ async def get_map_bg(set_id: int, diff: str) -> str:
 async def test():
     # score_obj = await osu.score(score_id=1789765517)
     thumb_path = await create_thumbnail(1749350671)
+    print(thumb_path)
+    thumb_path = await create_thumbnail(1133254938)
     print(thumb_path)
 
 # asyncio.run(test())

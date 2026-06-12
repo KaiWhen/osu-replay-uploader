@@ -109,7 +109,7 @@ class Requests(commands.Cog):
         acc = math.floor(score.accuracy * 10000) / 100
         mods = [mod.acronym for mod in score.mods]
         mods = sort_mods(mods)
-        mods_str = "".join(mods)
+        mods_str = f" {"+"}{"".join(mods)} " if len(mods) > 0 else " "
         status = score.beatmap.status.__str__()[11:]
         ar_str, od_str, cs_str, bpm_str, sr_string = await map_difficulty_to_str(score, mods, acc)
         meh = score.statistics.meh if score.statistics.meh else 0
@@ -122,7 +122,7 @@ class Requests(commands.Cog):
         em = discord.Embed()
         em.set_author(
             name=f"{score.beatmapset.artist} - {score.beatmapset.title} "
-            f"[{score.beatmap.version}] +{mods_str} [{sr_string}★]",
+            f"[{score.beatmap.version}]{mods_str}[{sr_string}★]",
             icon_url=f"https://a.ppy.sh/{score.user_id}",
             url=f"https://osu.ppy.sh/b/{score.beatmap.id}"
         )

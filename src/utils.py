@@ -97,7 +97,7 @@ def calc_bpm(base_bpm: float, mods: list[str]) -> float:
     bpm = base_bpm
     if "DT" in mods or "NC" in mods:
         bpm = round(bpm * 1.5)
-    if "HT" in mods:
+    if "HT" in mods or "DC" in mods:
         bpm = round(bpm * 0.75)
 
     return bpm
@@ -122,7 +122,7 @@ async def map_difficulty_to_str(score_obj, mods: list[str], acc: float) -> tuple
 
     difficulty_mods = get_difficulty_mods(mods)
     ar_str, od_str, cs_str, bpm_str = calc_map_difficulty(base_ar, base_od, base_cs, base_bpm, difficulty_mods)
-    star_rating = await calc_sr(score_obj, mods, acc)
+    star_rating, _ = await calc_sr(score_obj, mods, acc)
     sr_string = star_rating if star_rating > 0 else base_star_rating
 
     ar, od, cs, bpm = calc_map_difficulty(base_ar, base_od, base_cs, base_bpm, mods)
@@ -165,9 +165,9 @@ async def calc_sr(score_obj, mods: list[str], acc: float):
     )
 
     if res.is_success:
-        return round(res.stars, 2)
+        return round(res.stars, 2), res.pp
     else:
-        return -1
+        return -1, -1
 
 
 def get_map_country_rank(score_obj, beatmap_score_obj):

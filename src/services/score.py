@@ -1,6 +1,7 @@
 import asyncio
 import sys
 from datetime import datetime
+from time import perf_counter
 from src.clients import osu
 from src.db.status import get_status, update_status
 from src.config import COUNTRY_CODE
@@ -39,41 +40,36 @@ async def get_top_scores() -> list[int]:
             if not score.replay:
                 continue
             valid_scores.append(score.id)
-        
-        # await asyncio.sleep(1)
 
-        # get player's recent 50
+        # get player's recent 20
         try:
-            scores_recent50 = await osu.user_scores(user_id=player, type="recent", limit=50, mode="osu")
+            scores_recent20 = await osu.user_scores(user_id=player, type="recent", limit=20, mode="osu")
         except Exception as e:
             sys.stdout.write(e)
             continue
 
         # add #1 global scores
-        for score in scores_recent50:
-            now = datetime.now()
-            timestamp = datetime.timestamp(now)
-            if (not score
-                or datetime.timestamp(score.ended_at) - status['last_updated'] < 0
-                or not score.replay
-                or score.beatmap.difficulty_rating < 4
-                or not score.passed
-                or score.id in valid_scores):
+        for score in scores_recent20:
+            if score.rank_global and score.rank_global == 1:
+                now = datetime.now()
+                timestamp = datetime.timestamp(now)
+                if (not score
+                    or datetime.timestamp(score.ended_at) - status['last_updated'] < 0
+                    or not score.replay
+                    or score.beatmap.difficulty_rating < 4
+                    or not score.passed
+                    or score.id in valid_scores):
+                        continue
+                beatmapset = await score.beatmap.beatmapset()
+                if timestamp - datetime.timestamp(beatmapset.ranked_date) < 432000:
                     continue
-            beatmapset = await score.beatmap.beatmapset()
-            if timestamp - datetime.timestamp(beatmapset.ranked_date) < 432000:
-                continue
-            score_obj = await osu.score(score_id=score.id)
-            if score_obj.rank_global == 1:
                 valid_scores.append(score.id)
-        
-        # await asyncio.sleep(1)
 
     now = datetime.now()
     timestamp = datetime.timestamp(now)
-    #await update_status(db, COUNTRY_CODE, {
-    #    "last_updated": timestamp
-    #})
+    await update_status(db, COUNTRY_CODE, {
+       "last_updated": timestamp
+    })
 
     return valid_scores
 
@@ -107,7 +103,10 @@ async def get_replay_data(score_id: int):
 
 
 async def test():
+    start = perf_counter()
     score_ids = await get_top_scores()
+    end = perf_counter()
     print(score_ids)
+    print(f"Elapsed: {end - start}")
 
 # asyncio.run(test())
