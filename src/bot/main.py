@@ -18,7 +18,7 @@ class Bot(commands.Bot):
         self.osu = osu
         await self.load_extension("src.bot.cogs.general")
         await self.load_extension("src.bot.cogs.requests")
-        # await self.load_extension("src.bot.cogs.skins")
+        await self.load_extension("src.bot.cogs.skins")
         await self.load_extension("src.bot.cogs.notifications")
         await self.load_extension("src.bot.cogs.jobs_feed")
         
@@ -26,7 +26,7 @@ class Bot(commands.Bot):
 
 
     async def on_ready(self):
-        sys.stdout.write(f"Logged in as {self.user}")
+        sys.stdout.write(f"Logged in as {self.user}\n")
 
 
 Bot().run(DISCORD_TOKEN)

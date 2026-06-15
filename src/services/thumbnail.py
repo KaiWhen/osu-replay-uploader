@@ -7,10 +7,14 @@ import re
 from PIL import Image, ImageFont, ImageDraw, ImageFilter
 from src.clients import osu
 from src.config import THUMBNAILS_DIR
-from src.utils import calc_bpm, calc_sr, download_map, get_map_country_rank, sort_mods
+from src.utils import calc_bpm, calc_sr, download_map, get_map_country_rank, sort_mods, get_sb_from_video
 
 
 async def create_thumbnail(score_id: int) -> str:
+    thumb_path = THUMBNAILS_DIR / str(score_id) / f"{score_id}.png"
+    if os.path.exists(thumb_path):
+        return str(thumb_path)
+
     score_obj = await osu.score(score_id=score_id)
     user_obj = await osu.user(user=score_obj.user_id)
     beatmap_score_obj = await osu.beatmap_scores(beatmap_id=score_obj.beatmap.id, mode="osu", type="country")
@@ -19,7 +23,6 @@ async def create_thumbnail(score_id: int) -> str:
     set_id = score_obj.beatmapset.id
     diff = score_obj.beatmap.version
     bg_path = await get_map_bg(set_id, diff)
-    # bg_path = "maps/1616029/bg.jpg"
 
     if not os.path.exists(THUMBNAILS_DIR / str(score_id)):
         os.mkdir(THUMBNAILS_DIR / str(score_id))
@@ -45,18 +48,14 @@ async def create_thumbnail(score_id: int) -> str:
     avatar = Image.open(avatar_path).convert('RGBA').resize((round(256/ratio), round(256/ratio)))
     pb_image = Image.open("thumbnails/assets/pb.png").convert('RGBA')
     fc_image = Image.open("thumbnails/assets/FC.png").convert('RGBA')
-    
-    bg_w, _ = thumbnail.size
 
     country_ranking = get_map_country_rank(score_obj, beatmap_score_obj)
     
-    count = 1
     pb_text = None
-    for score in scores_top50:
+    for count, score in enumerate(scores_top50, start=1):
         if score_obj.id == score.id:
             pb_text = f"#{count}"
             break
-        count = count + 1
 
     acc = math.floor(score_obj.accuracy * 10000) / 100
     acc_text = f"{'%.2f' % acc}%"
@@ -73,20 +72,24 @@ async def create_thumbnail(score_id: int) -> str:
     global_rank_text = f"#{user_obj.statistics.global_rank}"
 
     title_text = f"{score_obj.beatmapset.artist} - {score_obj.beatmapset.title}"
-    if len(title_text) > 46:
-        title_text = title_text[:43] + "..."
+    if len(title_text) > 44:
+        title_text = title_text[:41] + "..."
 
     diff_text = f"[{score_obj.beatmap.version}]"
     if len(diff_text) > 32:
         diff_text = diff_text[:28] + "...]"
 
+    sliderbreaks = get_sb_from_video(score_id)
+    misses = score_obj.statistics.miss
     miss_text = ""
     miss_text_colour = (255, 255, 255)
     if score_obj.max_combo == score_obj.beatmap.max_combo:
         miss_text = "FC"
-    elif score_obj.statistics.miss and score_obj.statistics.miss > 0:
-        miss_text = f"{score_obj.statistics.miss}x"
+    elif misses and misses > 0:
+        miss_text = f"{misses}x"
         miss_text_colour = (181, 55, 85)
+    elif sliderbreaks > 0 and misses == None:
+        miss_text = f"{sliderbreaks}xSB"
 
     base_star_rating = round(score_obj.beatmap.difficulty_rating, 2)
     sr_text = f"{base_star_rating}"
@@ -94,11 +97,17 @@ async def create_thumbnail(score_id: int) -> str:
     if sr > 0:
         sr_text = f"{sr}"
 
-    pp_text = "0pp"
+    pp_text = "0PP"
     if status_string in ['RANKED', 'APPROVED']:
-        pp_text = f"{round(score_obj.pp)}pp"
+        pp_text = f"{round(score_obj.pp)}PP"
     elif status_string == 'LOVED':
-        pp_text = f"{round(pp)}pp"
+        pp_text = f"{round(pp)}PP"
+
+    acc_pp_font_size = 62
+    acc_pp_y_adj = 0
+    if len(pp_text) > 5 and len(acc_text) > 6:
+        acc_pp_font_size = 58
+        acc_pp_y_adj = 3
 
     base_bpm = score_obj.beatmap.bpm
     bpm = calc_bpm(base_bpm, mods)
@@ -111,13 +120,12 @@ async def create_thumbnail(score_id: int) -> str:
 
     title_font = ImageFont.truetype(futura_medium, 62)
     diff_font = ImageFont.truetype(futura_medium, 54)
-    acc_font = ImageFont.truetype(google_flex_regular, 62)
-    pp_font = ImageFont.truetype(google_flex_medium, 62)
+    acc_font = ImageFont.truetype(google_flex_regular, acc_pp_font_size)
+    pp_font = ImageFont.truetype(google_flex_medium, acc_pp_font_size)
     ranking_font = ImageFont.truetype(nexa_heavy, 35)
-    # ie_font = ImageFont.truetype(nexa_heavy, 30)
     country_font = ImageFont.truetype(nexa_heavy, 42)
     user_font = ImageFont.truetype(futura_medium, 45)
-    miss_font = ImageFont.truetype(google_flex_medium, 138)
+    miss_font = ImageFont.truetype(google_flex_medium, 105 if 'SB' in miss_text else 138)
     bpm_font = ImageFont.truetype(google_flex_medium, 38)
 
     thumbnail.paste(base, (0, 0), base)
@@ -126,6 +134,7 @@ async def create_thumbnail(score_id: int) -> str:
 
     thumbnail = apply_drop_shadow(thumbnail, avatar, (11, 533))
 
+    bg_w, _ = thumbnail.size
     sorted_mods = sort_mods(mods)
     mod_w = 140
     mods_length = mod_w * (len(mods) - 1)
@@ -161,7 +170,7 @@ async def create_thumbnail(score_id: int) -> str:
     # acc text
     thumbnail = draw_text_with_shadow(
         thumbnail,
-        (420 if len(pp_text) <= 5 else 400, 310),
+        (420 if len(pp_text) <= 5 and len(acc_text) <= 6 else 400, 310 + acc_pp_y_adj),
         acc_text,
         (255, 255, 255),
         font=acc_font,
@@ -171,7 +180,10 @@ async def create_thumbnail(score_id: int) -> str:
     # pp text
     thumbnail = draw_text_with_shadow(
         thumbnail,
-        (668 if len(pp_text) <= 5 else 648, 310),
+        (668 if len(pp_text) <= 5 and len(acc_text) <= 6
+            else (648 if len(acc_text) <= 6
+            else (677 if len(pp_text) <= 5
+            else 659)), 310 + acc_pp_y_adj),
         pp_text,
         (0, 255, 0),
         font=pp_font,
@@ -259,6 +271,21 @@ async def create_thumbnail(score_id: int) -> str:
         )
     if miss_text == "FC":
         thumbnail.paste(fc_image, (0, 0), fc_image)
+    elif 'SB' in miss_text:
+        thumbnail = draw_text_with_shadow(
+            thumbnail,
+            (23, 5),
+            miss_text,
+            miss_text_colour,
+            font=miss_font,
+            shadow_offset=(0, 4),
+            shadow_color=(0,0,0,170),
+            shadow_blur=8,
+            clone_blur_radius=15,
+            glow_color=miss_text_colour,
+            glow_opacity=0.7,
+            letter_spacing=-1
+        )
     else:
         thumbnail = draw_text_with_shadow(
             thumbnail,
@@ -269,7 +296,7 @@ async def create_thumbnail(score_id: int) -> str:
             shadow_offset=(0, 4),
             shadow_color=(0,0,0,170),
             shadow_blur=8,
-            clone_blur_radius=30,
+            clone_blur_radius=20,
             glow_color=miss_text_colour,
             glow_opacity=1.0,
             letter_spacing=-1
@@ -281,11 +308,10 @@ async def create_thumbnail(score_id: int) -> str:
     draw_text_with_spacing(image, ((bg_w - title_w)/2 + 1, 137), title_text, (26, 26, 26), font=title_font, stroke_width=1, spacing=-1)
     draw_text_with_spacing(image, ((bg_w - title_w)/2, 135), title_text, (255, 255, 255), font=title_font, spacing=-1)
 
-    thumb_path = THUMBNAILS_DIR / str(score_id) / f"{score_id}.png"
     thumbnail = thumbnail.convert('RGB')
     thumbnail.save(thumb_path)
 
-    return thumb_path
+    return str(thumb_path)
 
 
 def draw_text_with_spacing(draw, pos, text, fill, font, stroke_fill=(255,255,255), stroke_width=0, spacing=1):
@@ -374,7 +400,7 @@ async def get_map_bg(set_id: int, diff: str) -> str:
         try:
             await download_map(set_id)
         except Exception as e:
-            sys.stdout.write(f"Error downloading map: {e}")
+            sys.stdout.write(f"Error downloading map: {e}\n")
             return backup_bg_path
 
     special_chars = "\":@%^*?=,<>/|"
@@ -411,13 +437,3 @@ async def get_map_bg(set_id: int, diff: str) -> str:
     else:
         bg_path = backup_bg_path
     return bg_path
-
-
-async def test():
-    # score_obj = await osu.score(score_id=1789765517)
-    thumb_path = await create_thumbnail(1749350671)
-    print(thumb_path)
-    thumb_path = await create_thumbnail(1133254938)
-    print(thumb_path)
-
-# asyncio.run(test())

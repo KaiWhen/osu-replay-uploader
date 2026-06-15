@@ -1,6 +1,5 @@
 from pymongo.asynchronous.database import AsyncDatabase
 from pymongo.typings import _DocumentType
-from pymongo.cursor import Cursor
 
 
 async def get_status(db: AsyncDatabase, country_code: str) -> _DocumentType | None:

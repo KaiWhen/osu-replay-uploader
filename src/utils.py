@@ -1,16 +1,21 @@
 import os
-from datetime import datetime, timezone
+import shutil
 import sys
-from zipfile import ZipFile
 import aiofiles
 import aiohttp
+import subprocess
+import pytesseract
+from datetime import datetime, timezone
+from PIL import Image
+from zipfile import ZipFile
 from osu_tools import OsuCalculator
-from src.config import MAPS_DIR
+from osrparse import Replay
+from src.config import MAPS_DIR, REPLAYS_DIR, THUMBNAILS_DIR, VIDEOS_DIR
 
 SPECIAL_CHARS = "\":@%^*?=,<>/|"
 DIFFICULTY_MODS = {'EZ', 'HR', 'DT', 'NC', 'HT', 'DC'}
 SPEED_MODS = {'DT', 'NC', 'HT', 'DC'}
-MOD_ORDER = ['EZ', 'HT', 'DC', 'HD', 'DT', 'NC', 'HR', 'FL']
+MOD_ORDER = ['EZ', 'HT', 'DC', 'HD', 'TC', 'DT', 'NC', 'HR', 'FL', 'BL']
 
 
 def to_rfc3339(timestamp: float) -> str:
@@ -144,7 +149,7 @@ async def calc_sr(score_obj, mods: list[str], acc: float):
         try:
             await download_map(set_id)
         except Exception as e:
-            sys.stdout.write(f"Error downloading map: {e}")
+            sys.stdout.write(f"Error downloading map: {e}\n")
             return -1
 
     file_path = ""
@@ -188,7 +193,7 @@ async def download_map(set_id: int):
     async with aiohttp.ClientSession(headers=headers) as session:
         for url in urls:
             async with session.get(url) as r:
-                sys.stdout.write(f"{url} -> status {r.status}")
+                sys.stdout.write(f"{url} -> status {r.status}\n")
                 if r.ok:
                     map_file_path = MAPS_DIR / f"{set_id}/map.osz"
                     async with aiofiles.open(map_file_path, 'wb') as outfile:
@@ -197,3 +202,47 @@ async def download_map(set_id: int):
                     with ZipFile(map_file_path, 'r') as zip_ref:
                         zip_ref.extractall(MAPS_DIR / f"{set_id}")
                     return
+
+
+def get_sb_from_video(score_id: int) -> int:
+    video_path = VIDEOS_DIR / f"{score_id}.mp4"
+    frame_path = f"{os.path.dirname(os.path.realpath(video_path))}/{score_id}.png"
+    subprocess.run([
+        "ffmpeg", "-y",
+        "-sseof", "-7",
+        "-i", video_path,
+        "-vframes", "1",
+        "-q:v", "2",
+        f"{frame_path}"
+    ], check=True)
+
+    frame = Image.open(frame_path)
+    region = frame.crop((199, 261, 259, 307))
+    region = region.convert("L")
+    region = region.resize((region.width * 3, region.height * 3), Image.LANCZOS)
+    region = region.point(lambda px: 255 if px > 128 else 0)
+    text = pytesseract.image_to_string(region, config="--psm 7 --oem 3 -c tessedit_char_whitelist=0123456789")
+    return int(text.strip()) if text.strip() else 0
+
+
+def verify_replay_file(replay_path: str) -> bool:
+    try:
+        Replay.from_path(replay_path)
+        return True
+    except:
+        return False
+
+
+def clear_score_files(score_id: int):
+    replay_path = REPLAYS_DIR / f"{score_id}.osr"
+    video_path = VIDEOS_DIR / f"{score_id}.mp4"
+    video_frame_path = VIDEOS_DIR / f"{score_id}.png"
+    thumbnail_path = THUMBNAILS_DIR / f"{score_id}"
+    if os.path.exists(replay_path):
+        os.remove(replay_path)
+    if os.path.exists(video_path):
+        os.remove(video_path)
+    if os.path.exists(video_frame_path):
+        os.remove(video_frame_path)
+    if os.path.exists(thumbnail_path):
+        shutil.rmtree(thumbnail_path)

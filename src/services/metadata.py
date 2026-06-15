@@ -1,16 +1,16 @@
-import asyncio
 import math
-from pathlib import Path
 from src.clients import osu
 from src.config import COUNTRY_CODE
 from src.utils import map_difficulty_to_str, sort_mods
 
 
-async def configure_metadata(score_id: int, video_path: Path):
+async def configure_metadata(score_id: int, video_path: str):
     score_obj = await osu.score(score_id=score_id)
     user_obj = await osu.user(user=score_obj.user_id, mode="osu")
     username = score_obj._user.username
     acc = math.floor(score_obj.accuracy * 10000) / 100
+    if acc == 100.0:
+        acc = int(acc)
 
     mods = [mod.acronym for mod in score_obj.mods]
     description = await _create_description(score_obj, user_obj, acc, mods)

@@ -1,10 +1,11 @@
 from datetime import datetime
+import os
 from src.clients import get_forms, osu
 from src.db.scores import get_score
 from src.db.status import get_status, update_status
 from src.db.mongo import db
-from src.services.drive import download_file
-from src.utils import to_rfc3339
+from src.services.drive import delete_file, download_file
+from src.utils import to_rfc3339, verify_replay_file
 from src.config import FORM_ID, FORM_SCORE_ANSWER_ID, FORM_FILE_ANSWER_ID, COUNTRY_CODE, REPLAYS_DIR
 
 
@@ -55,12 +56,22 @@ async def get_form_resp():
             if file_answer['mimeType'] != "application/x-osu-replay":
                 score['err'] = "Invalid file type."
                 scores.append(score)
+                await delete_file(file_id)
+                score['file_id'] = "DELETED"
                 continue
+            replay_path = REPLAYS_DIR / f"{score_id}.osr"
             try:
-                await download_file(file_id, REPLAYS_DIR / f"{score_id}.osr")
+                await download_file(file_id, replay_path)
             except Exception as e:
                 score['err'] = f"Failed to download replay from Drive: {e}"
                 scores.append(score)
+                continue
+            if not verify_replay_file(str(replay_path)):
+                score['err'] = f"Either a corrupt replay file or this mf tried to submit a different file type"
+                scores.append(score)
+                os.remove(replay_path)
+                await delete_file(file_id)
+                score['file_id'] = "DELETED"
                 continue
         score['valid'] = True
         scores.append(score)

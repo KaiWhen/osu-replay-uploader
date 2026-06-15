@@ -22,7 +22,7 @@ async def _save_response(response: aiohttp.ClientResponse, destination: str):
     match = re.findall('filename="(.+)"', content_disposition)
     filename = match[0] if match else destination
 
-    sys.stdout.write(f"[+] Downloading {filename}")
+    sys.stdout.write(f"[+] Downloading {filename}\n")
 
     async with aiofiles.open(destination, "wb") as f:
         async for chunk in response.content.iter_chunked(CHUNK_SIZE):
@@ -32,6 +32,9 @@ async def _save_response(response: aiohttp.ClientResponse, destination: str):
 
 async def delete_file(file_id: str):
     drive = get_drive()
-    await asyncio.to_thread(
-        drive.files().delete(fileId=file_id).execute
-    )
+    try:
+        await asyncio.to_thread(
+            drive.files().delete(fileId=file_id).execute
+        )
+    except Exception as e:
+        sys.stdout.write(f"Error deleting file: {e}\n")

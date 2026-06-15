@@ -1,12 +1,11 @@
-import asyncio
+import io
 import sys
 from datetime import datetime
-from time import perf_counter
 from src.clients import osu
 from src.db.status import get_status, update_status
 from src.config import COUNTRY_CODE
-from src.db.mongo import db
 from src.utils import sort_mods
+from pymongo.asynchronous.database import AsyncDatabase
 
 
 async def get_top100() -> list[int]:
@@ -19,7 +18,7 @@ async def get_top100() -> list[int]:
     return top100_users
 
 
-async def get_top_scores() -> list[int]:
+async def get_top_scores(db: AsyncDatabase) -> list[int]:
     status = await get_status(db, COUNTRY_CODE)
     top100 = await get_top100()
     valid_scores = []
@@ -28,7 +27,7 @@ async def get_top_scores() -> list[int]:
         try:
             scores_top10 = await osu.user_scores(user_id=player, type="best", limit=10, mode="osu")
         except Exception as e:
-            sys.stdout.write(e)
+            sys.stdout.write(f"Error getting player {player} top 10: {e}\n")
             continue
 
         # add recent top score
@@ -45,7 +44,7 @@ async def get_top_scores() -> list[int]:
         try:
             scores_recent20 = await osu.user_scores(user_id=player, type="recent", limit=20, mode="osu")
         except Exception as e:
-            sys.stdout.write(e)
+            sys.stdout.write(f"Error getting player {player} recent 20: {e}\n")
             continue
 
         # add #1 global scores
@@ -60,7 +59,10 @@ async def get_top_scores() -> list[int]:
                     or not score.passed
                     or score.id in valid_scores):
                         continue
-                beatmapset = await score.beatmap.beatmapset()
+                try:
+                    beatmapset = await score.beatmap.beatmapset()
+                except Exception as e:
+                    sys.stdout.write(f"Error getting beatmapset: {e}\n")
                 if timestamp - datetime.timestamp(beatmapset.ranked_date) < 432000:
                     continue
                 valid_scores.append(score.id)
@@ -96,17 +98,8 @@ async def get_score_data(score_id: int) -> dict:
 
 async def get_replay_data(score_id: int):
     try:
-        return await osu.download_score(score_id=score_id, raw=True)
+        raw = await osu.download_score(score_id=score_id, raw=True)
+        return io.BytesIO(raw)
     except Exception as e:
-        sys.stdout.write(f"Replay download failed for {score_id}: {e}")
+        sys.stdout.write(f"Replay download failed for {score_id}: {e}\n")
         return None
-
-
-async def test():
-    start = perf_counter()
-    score_ids = await get_top_scores()
-    end = perf_counter()
-    print(score_ids)
-    print(f"Elapsed: {end - start}")
-
-# asyncio.run(test())

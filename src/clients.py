@@ -1,7 +1,15 @@
 from ossapi import OssapiAsync
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
-from src.config import OSU_CLIENT_ID, OSU_CLIENT_SECRET, OSU_REDIRECT_URI, YOUTUBE_SCOPES, FORMS_SCOPES, DRIVE_SCOPES, TOKENS_DIR
+from src.config import (
+    OSU_CLIENT_ID,
+    OSU_CLIENT_SECRET,
+    OSU_REDIRECT_URI,
+    YOUTUBE_SCOPES,
+    FORMS_SCOPES,
+    DRIVE_SCOPES,
+    TOKENS_DIR
+)
 
 osu = OssapiAsync(
     OSU_CLIENT_ID,

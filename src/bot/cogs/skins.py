@@ -1,13 +1,16 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord import app_commands
 from src.services.render import skin_exists
-from src.config import ADMIN_USER_ID
 
 
 class Skins(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+
+
+    def cog_unload(self) -> tasks.Coroutine[tasks.Any, tasks.Any, None]:
+        return super().cog_unload()
 
 
     @app_commands.command(name="setskin", description="Set skin for player")
@@ -18,8 +21,13 @@ class Skins(commands.Cog):
             await interaction.response.send_message("Invalid player name. Please try again.")
             return
 
-        if not skin_exists(skin_id):
-            await interaction.response.send_message("Skin does not exist on o!rdr.")
+        skin_exist = await skin_exists(skin_id)
+        if not skin_exist:
+            await interaction.response.send_message(
+                f"Skin {skin_id} does not exist on o!rdr. "
+                "Please upload your skin to https://ordr.issou.best/skins/upload"
+                " or provide the correct skin ID."
+            )
             return
 
         await self.bot.db['skins'].update_one(

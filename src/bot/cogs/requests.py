@@ -1,4 +1,5 @@
 import asyncio
+import os
 import discord
 import math
 from discord.ext import commands, tasks
@@ -8,11 +9,8 @@ from src.db.requests import insert_request, get_pending_requests, resolve_reques
 from src.services.drive import delete_file
 from src.services.score import get_score_data
 from src.services.forms import get_form_resp
-from src.config import DISCORD_APPROVAL_CHANNEL_ID
+from src.config import DISCORD_REQUESTS_CHANNEL_ID, REPLAYS_DIR, VOTES_REQUIRED
 from src.utils import get_map_country_rank, map_difficulty_to_str, sort_mods
-
-VOTES_REQUIRED = 1
-TEST_CHANNEL_ID = 1106553041836052501
 
 
 class Requests(commands.Cog):
@@ -30,38 +28,37 @@ class Requests(commands.Cog):
 
     @tasks.loop(minutes=1)
     async def form_loop(self):
-        channel = self.bot.get_channel(TEST_CHANNEL_ID)
         scores = await get_form_resp()
         if not scores:
             return
 
         for score in scores:
-            await self._handle_request(channel, score)
+            await self._handle_request(self.channel, score)
             await asyncio.sleep(2)
     
 
     @tasks.loop(seconds=5)
     async def check_request_loop(self):
         pending_requests = await get_pending_requests(self.bot.db)
-        channel = self.bot.get_channel(TEST_CHANNEL_ID)
         for req in pending_requests:
-            message = await channel.fetch_message(req['message_id'])
+            message = await self.channel.fetch_message(req['message_id'])
+            score_id = req['score_id']
             reactions = message.reactions
             for r in reactions:
                 if str(r.emoji) == "✅":
                     if r.normal_count >= VOTES_REQUIRED + 1:
-                        score_id = req['score_id']
-                        # score_data = await get_score_data(score_id)
-                        # await insert_score(self.bot.db, score_data)
-                        # await enqueue(self.bot.db, "render", score_id, {"score_id": score_id})
+                        score_data = await get_score_data(score_id)
+                        await insert_score(self.bot.db, score_data)
+                        await enqueue(self.bot.db, "submit_render", score_id, {"score_id": score_id})
                         await resolve_request(self.bot.db, req['_id'])
                         await message.edit(content="## **Replay queued for upload ✅**")
                         break
                 elif str(r.emoji) == "❌":
                     if r.normal_count >= VOTES_REQUIRED + 1:
-                        await resolve_request(self.bot.db, req['_id'])
                         if req['file_id']:
-                            delete_file(req['file_id'])
+                            await delete_file(req['file_id'])
+                            os.remove(REPLAYS_DIR / f"{score_id}.osr")
+                        await resolve_request(self.bot.db, req['_id'])
                         await message.edit(content="## ❌ rip bozo")
                         break
             remaining_reqs = await get_pending_requests(self.bot.db)
@@ -98,8 +95,10 @@ class Requests(commands.Cog):
         await message.add_reaction("✅")
         await message.add_reaction("❌")
 
-        score_description = f"""{username} | {score.beatmapset.artist} - {score.beatmapset.title}
-        [{score.beatmap.version}]"""
+        score_description = (
+            f"{username} | {score.beatmapset.artist} - {score.beatmapset.title}"
+            f"[{score.beatmap.version}]"
+        )
         await insert_request(self.bot.db, score_id, score_description, message.id, score_dict['file_id'])
         if not self.check_request_loop.is_running():
             self.check_request_loop.start()
@@ -174,6 +173,7 @@ class Requests(commands.Cog):
     @form_loop.before_loop
     async def before_loop(self):
         await self.bot.wait_until_ready()
+        self.channel = self.bot.get_channel(DISCORD_REQUESTS_CHANNEL_ID)
 
 
     @check_request_loop.before_loop
