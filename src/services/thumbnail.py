@@ -1,13 +1,12 @@
 import os
 import sys
 import aiohttp
-import asyncio
 import math
 import re
 from PIL import Image, ImageFont, ImageDraw, ImageFilter
 from src.clients import osu
 from src.config import THUMBNAILS_DIR
-from src.utils import calc_bpm, calc_sr, download_map, get_map_country_rank, sort_mods, get_sb_from_video
+from src.utils import calc_bpm, calc_sr, download_map, get_map_country_rank, is_majority_upper, sort_mods, get_sb_from_video
 
 
 async def create_thumbnail(score_id: int) -> str:
@@ -72,12 +71,18 @@ async def create_thumbnail(score_id: int) -> str:
     global_rank_text = f"#{user_obj.statistics.global_rank}"
 
     title_text = f"{score_obj.beatmapset.artist} - {score_obj.beatmapset.title}"
-    if len(title_text) > 44:
+    title_majority_upper = is_majority_upper(title_text)
+    if not title_majority_upper and len(title_text) > 44:
         title_text = title_text[:41] + "..."
+    elif title_majority_upper and len(title_text) > 37:
+        title_text = title_text[:34] + "..."
 
     diff_text = f"[{score_obj.beatmap.version}]"
-    if len(diff_text) > 32:
+    diff_majority_upper = is_majority_upper(diff_text)
+    if not diff_majority_upper and len(diff_text) > 32:
         diff_text = diff_text[:28] + "...]"
+    elif diff_majority_upper and len(diff_text) > 28:
+        diff_text = diff_text[:24] + "...]"
 
     sliderbreaks = get_sb_from_video(score_id)
     misses = score_obj.statistics.miss

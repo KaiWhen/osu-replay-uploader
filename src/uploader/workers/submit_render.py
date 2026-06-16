@@ -1,7 +1,7 @@
 import asyncio
 import os
 from pymongo.asynchronous.database import AsyncDatabase
-from src.db.jobs import claim_next_job, fail_job, complete_job, enqueue, advance_job
+from src.db.jobs import claim_next_job, fail_job, advance_job
 from src.services.score import get_replay_data
 from src.services.render import submit_render
 from src.config import WORKER_POLL_INTERVAL, REPLAYS_DIR

@@ -246,3 +246,13 @@ def clear_score_files(score_id: int):
         os.remove(video_frame_path)
     if os.path.exists(thumbnail_path):
         shutil.rmtree(thumbnail_path)
+
+
+def is_majority_upper(s: str) -> bool:
+    upper_count = sum(1 for ch in s if ch.isupper())
+    lower_count = sum(1 for ch in s if ch.islower())
+
+    if upper_count + lower_count == 0:
+        return False
+
+    return upper_count > lower_count

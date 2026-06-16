@@ -8,3 +8,5 @@ pillow
 osu-tools-py
 python-dateutil
 aiofiles
+socketio
+pytesseract
