@@ -303,7 +303,7 @@ async def create_thumbnail(score_id: int) -> str:
             shadow_blur=8,
             clone_blur_radius=20,
             glow_color=miss_text_colour,
-            glow_opacity=1.0,
+            glow_opacity=0.6,
             letter_spacing=-1
         )
 
