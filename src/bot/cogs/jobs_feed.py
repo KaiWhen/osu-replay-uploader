@@ -9,7 +9,7 @@ from bson import ObjectId
 from discord import app_commands, Interaction
 from discord.ext import commands, tasks
 from src.db.jobs import get_ongoing_jobs
-from src.config import DISCORD_JOBS_FEED_CHANNEL_ID, REPLAYS_DIR, THUMBNAILS_DIR, VIDEOS_DIR, ADMIN_USER_ID
+from src.config import DISCORD_JOBS_FEED_CHANNEL_ID, ADMIN_USER_ID
 from src.utils import clear_score_files, sort_mods
 
 
@@ -63,14 +63,14 @@ class JobsFeed(commands.Cog):
         score = await self.bot.osu.score(score_id=score_id)
         mods = [mod.acronym for mod in score.mods]
         mods = sort_mods(mods)
-        mods_str = "".join(mods)
+        mods_str = f" {"+"}{"".join(mods)}" if len(mods) > 0 else ""
 
         em = discord.Embed()
         em.set_author(
             name=f"{score._user.username} | {score.beatmapset.artist} - {score.beatmapset.title} "
-            f"[{score.beatmap.version}] +{mods_str}",
+            f"[{score.beatmap.version}]{mods_str}",
             icon_url=f"https://a.ppy.sh/{score.user_id}",
-            url=f"https://osu.ppy.sh/score/{score_id}"
+            url=f"https://osu.ppy.sh/scores/{score_id}"
         )
         em.add_field(
             name=f"Job Status: {job['status'].upper()}",

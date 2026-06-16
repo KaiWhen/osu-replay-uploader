@@ -88,11 +88,11 @@ async def create_thumbnail(score_id: int) -> str:
     misses = score_obj.statistics.miss
     miss_text = ""
     miss_text_colour = (255, 255, 255)
-    if score_obj.max_combo == score_obj.beatmap.max_combo:
+    if misses == 0 and sliderbreaks == 0:
         miss_text = "FC"
     elif misses and misses > 0:
         miss_text = f"{misses}x"
-        miss_text_colour = (181, 55, 85)
+        miss_text_colour = (255, 0, 0)
     elif sliderbreaks > 0 and misses == None:
         miss_text = f"{sliderbreaks}xSB"
 

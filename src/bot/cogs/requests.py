@@ -126,7 +126,7 @@ class Requests(commands.Cog):
             url=f"https://osu.ppy.sh/b/{score.beatmap.id}"
         )
         em.add_field(
-            name=f"{round(score.pp)}pp ▸ {acc}% ▸ {score.max_combo}x/{score.beatmap.max_combo}x "
+            name=f"{round(score.pp)}pp ▸ {acc}% ▸ {score.max_combo}/{score.beatmap.max_combo}x "
             f"▸ {hit_count_str}",
             value=f"{bpm_str}bpm ▸ AR{ar_str} ▸ CS{cs_str} ▸ OD{od_str} ▸ {status} ▸ "
             f"🌐 #{score.rank_global} ▸ 🇮🇪 #{country_ranking}\nDate set: {str(score.ended_at)[:-6]}"

@@ -188,7 +188,8 @@ async def download_map(set_id: int):
         f"https://beatconnect.io/b/{set_id}",
     ]
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     }
     async with aiohttp.ClientSession(headers=headers) as session:
         for url in urls:
@@ -208,8 +209,8 @@ def get_sb_from_video(score_id: int) -> int:
     video_path = VIDEOS_DIR / f"{score_id}.mp4"
     frame_path = f"{os.path.dirname(os.path.realpath(video_path))}/{score_id}.png"
     subprocess.run([
-        "ffmpeg", "-y",
-        "-sseof", "-7",
+        "ffmpeg", "-n",
+        "-sseof", "-6.9",
         "-i", video_path,
         "-vframes", "1",
         "-q:v", "2",

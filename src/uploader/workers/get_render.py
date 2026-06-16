@@ -20,7 +20,7 @@ async def get_render_worker(db: AsyncDatabase):
             await wait_for_render(render_id)
             video_path = await download_video(render_id, score_id)
             thumb_path = await create_thumbnail(score_id)
-            options = await configure_metadata(score_id, video_path)
+            options = await configure_metadata(db, score_id, video_path)
             options['thumb_path'] = thumb_path
             await advance_job(db, job["_id"], "upload", {"options": options})
         except Exception as e:
