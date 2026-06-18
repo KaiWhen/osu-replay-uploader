@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime
 import sys
 from src.services.score import get_top_scores, get_score_data
 from src.db.scores import insert_score
@@ -9,6 +10,8 @@ from src.config import SCORE_WORKER_POLL_INTERVAL
 async def score_worker(db):
     while True:
         try:
+            sys.stdout.write(f"[{datetime.now()}] score_worker POLLING\n")
+            sys.stdout.flush()
             score_ids = await get_top_scores(db)
             for score_id in score_ids:
                 score_data = await get_score_data(score_id)
@@ -16,6 +19,7 @@ async def score_worker(db):
                 await enqueue(db, "submit_render", score_id, {"score_id": score_id})
         except Exception as e:
             sys.stdout.write(f"Fatal error in score worker: {e}\n")
+            sys.stdout.flush()
             await asyncio.sleep(SCORE_WORKER_POLL_INTERVAL * 2)
             continue
         await asyncio.sleep(SCORE_WORKER_POLL_INTERVAL)

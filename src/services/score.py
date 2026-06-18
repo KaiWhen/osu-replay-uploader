@@ -1,3 +1,4 @@
+import asyncio
 import io
 import sys
 from datetime import datetime
@@ -25,7 +26,10 @@ async def get_top_scores(db: AsyncDatabase) -> list[int]:
     for player in top100:
         # get player's top 10
         try:
-            scores_top10 = await osu.user_scores(user_id=player, type="best", limit=10, mode="osu")
+            scores_top10 = await asyncio.wait_for(
+                osu.user_scores(user_id=player, type="best", limit=10, mode="osu"),
+                timeout=30
+            )
         except Exception as e:
             sys.stdout.write(f"Error getting player {player} top 10: {e}\n")
             continue
@@ -42,7 +46,10 @@ async def get_top_scores(db: AsyncDatabase) -> list[int]:
 
         # get player's recent 20
         try:
-            scores_recent20 = await osu.user_scores(user_id=player, type="recent", limit=20, mode="osu")
+            scores_recent20 = await asyncio.wait_for(
+                osu.user_scores(user_id=player, type="recent", limit=20, mode="osu"),
+                timeout=30
+            )
         except Exception as e:
             sys.stdout.write(f"Error getting player {player} recent 20: {e}\n")
             continue
@@ -60,7 +67,10 @@ async def get_top_scores(db: AsyncDatabase) -> list[int]:
                     or score.id in valid_scores):
                         continue
                 try:
-                    beatmapset = await score.beatmap.beatmapset()
+                    beatmapset = await asyncio.wait_for(
+                        score.beatmap.beatmapset(),
+                        timeout=30
+                    )
                 except Exception as e:
                     sys.stdout.write(f"Error getting beatmapset: {e}\n")
                 if timestamp - datetime.timestamp(beatmapset.ranked_date) < 432000:
@@ -72,6 +82,8 @@ async def get_top_scores(db: AsyncDatabase) -> list[int]:
     await update_status(db, COUNTRY_CODE, {
        "last_updated": timestamp
     })
+    sys.stdout.write(f"[{datetime.now()}] score_worker UPDATED\n")
+    sys.stdout.flush()
 
     return valid_scores
 
