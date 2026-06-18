@@ -1,7 +1,5 @@
 import asyncio
 from datetime import datetime, timedelta, timezone
-import os
-import shutil
 import discord
 import json
 import hashlib
@@ -55,7 +53,7 @@ class JobsFeed(commands.Cog):
                     )
                 except discord.NotFound:
                     pass
-            await asyncio.sleep(5)
+            await asyncio.sleep(2)
 
 
     async def _build_job_embed(self, job):

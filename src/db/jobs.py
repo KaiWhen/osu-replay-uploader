@@ -51,7 +51,7 @@ async def get_ongoing_jobs(db):
         "status": {
             "$in": ["pending", "processing", "failed", "complete"]
         }
-    }).sort("created_at", -1).limit(20).to_list(length=20)
+    }).sort("created_at", -1).limit(5).to_list(length=5)
 
 
 async def complete_job(db, job_id: ObjectId, result_payload: dict = None):
