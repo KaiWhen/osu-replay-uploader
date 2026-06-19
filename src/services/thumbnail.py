@@ -88,12 +88,12 @@ async def create_thumbnail(score_id: int) -> str:
     misses = score_obj.statistics.miss
     miss_text = ""
     miss_text_colour = (255, 255, 255)
-    if misses == 0 and sliderbreaks == 0:
+    if not misses and sliderbreaks == 0:
         miss_text = "FC"
     elif misses and misses > 0:
         miss_text = f"{misses}x"
         miss_text_colour = (255, 0, 0)
-    elif sliderbreaks > 0 and misses == None:
+    elif sliderbreaks > 0 and not misses:
         miss_text = f"{sliderbreaks}xSB"
 
     base_star_rating = round(score_obj.beatmap.difficulty_rating, 2)

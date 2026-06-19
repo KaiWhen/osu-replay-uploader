@@ -90,10 +90,10 @@ async def _create_description(db: AsyncDatabase, score_obj, user_obj, acc: float
         "",
         "💯 Score info",
         f"Score Link: https://osu.ppy.sh/scores/{score_obj.id}",
-        f"Date set: {str(score_obj.ended_at)[:-6]}"
-        f"{round(score_obj.pp)}pp | {acc} | {score_obj.max_combo}/{score_obj.beatmap.max_combo}x | {hit_count_str}"
+        f"Date set: {str(score_obj.ended_at)[:-6]}",
+        f"{round(score_obj.pp)}pp | {acc}% | {score_obj.max_combo}/{score_obj.beatmap.max_combo}x | {hit_count_str}",
         "",
-        f"Skin: https://link.issou.best/skin/{skin_id}"
+        f"Skin: https://link.issou.best/skin/{skin_id}",
         "",
         "The uploads on this channel are automated using a bot.",
         "The bot currently tracks #1 global scores and top 10 personal pp plays of the top 100 players of Ireland.",
