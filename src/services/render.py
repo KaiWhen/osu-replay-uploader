@@ -50,6 +50,19 @@ async def connect_ws():
     await sio.connect(ORDR_BASE_API_URL, socketio_path=ORDR_WS_PATH, wait_timeout=10)
 
 
+async def ws_keepalive():
+    while True:
+        if not sio.connected:
+            sys.stdout.write(f"[{datetime.now()}] websocket disconnected, reconnecting...\n")
+            sys.stdout.flush()
+            try:
+                await connect_ws()
+            except Exception as e:
+                sys.stdout.write(f"[{datetime.now()}] websocket reconnect failed: {e}\n")
+                sys.stdout.flush()
+        await asyncio.sleep(30)
+
+
 async def wait_for_render(render_id: str, timeout: int = 900):
     async with aiohttp.ClientSession() as session:
         async with session.get(f"{ORDR_BASE_API_URL}{ORDR_RENDER_PATH}", params={"renderID": render_id}) as resp:
