@@ -1,5 +1,7 @@
 import asyncio
 import os
+import sys
+from datetime import datetime
 from pymongo.asynchronous.database import AsyncDatabase
 from src.db.jobs import claim_next_job, fail_job, advance_job
 from src.services.score import get_replay_data
@@ -9,6 +11,8 @@ from src.config import WORKER_POLL_INTERVAL, REPLAYS_DIR
 
 async def submit_render_worker(db: AsyncDatabase):
     while True:
+        sys.stdout.write(f"[{datetime.now()}] submit_render_worker POLLING\n")
+        sys.stdout.flush()
         job = await claim_next_job(db, "submit_render")
         if not job:
             await asyncio.sleep(WORKER_POLL_INTERVAL)

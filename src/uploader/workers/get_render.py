@@ -1,4 +1,6 @@
 import asyncio
+import sys
+from datetime import datetime
 from pymongo.asynchronous.database import AsyncDatabase
 from src.db.jobs import claim_next_job, fail_job, advance_job
 from src.services.metadata import configure_metadata
@@ -10,6 +12,8 @@ from src.services.video import download_video
 
 async def get_render_worker(db: AsyncDatabase):
     while True:
+        sys.stdout.write(f"[{datetime.now()}] get_render_worker POLLING\n")
+        sys.stdout.flush()
         job = await claim_next_job(db, "get_render")
         if not job:
             await asyncio.sleep(GET_RENDER_WORKER_POLL_INTERVAL)

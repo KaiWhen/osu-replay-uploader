@@ -1,6 +1,6 @@
 import asyncio
-from datetime import datetime
 import sys
+from datetime import datetime
 from src.services.score import get_top_scores, get_score_data
 from src.db.scores import insert_score
 from src.db.jobs import enqueue

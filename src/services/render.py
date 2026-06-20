@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime
 import socketio
 import aiohttp
 import sys
@@ -33,11 +34,23 @@ async def on_render_failed(data):
         )
 
 
+@sio.on("disconnect")
+async def on_disconnect():
+    sys.stdout.write(f"[{datetime.now()}] websocket disconnected\n")
+    sys.stdout.flush()
+
+
+@sio.on("connect")
+async def on_connect():
+    sys.stdout.write(f"[{datetime.now()}] websocket connected\n")
+    sys.stdout.flush()
+
+
 async def connect_ws():
-    await sio.connect(ORDR_BASE_API_URL, socketio_path=ORDR_WS_PATH)
+    await sio.connect(ORDR_BASE_API_URL, socketio_path=ORDR_WS_PATH, wait_timeout=10)
 
 
-async def wait_for_render(render_id: str, timeout: int = 3600):
+async def wait_for_render(render_id: str, timeout: int = 900):
     async with aiohttp.ClientSession() as session:
         async with session.get(f"{ORDR_BASE_API_URL}{ORDR_RENDER_PATH}", params={"renderID": render_id}) as resp:
             data = await resp.json()

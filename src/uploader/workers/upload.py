@@ -1,4 +1,6 @@
 import asyncio
+import sys
+from datetime import datetime
 from pymongo.asynchronous.database import AsyncDatabase
 from src.services.youtube import upload_video, upload_thumbnail
 from src.db.scores import update_score
@@ -10,6 +12,8 @@ from src.utils import clear_score_files
 
 async def upload_worker(db: AsyncDatabase, youtube):
     while True:
+        sys.stdout.write(f"[{datetime.now()}] upload_worker POLLING\n")
+        sys.stdout.flush()
         job = await claim_next_job(db, "upload")
         if not job:
             await asyncio.sleep(WORKER_POLL_INTERVAL)

@@ -5,7 +5,7 @@ from src.clients import get_youtube
 from src.db.mongo import db
 from src.db.jobs import recover_stale_jobs
 from src.db.status import get_status, insert_status
-from src.services.render import connect_ws
+from src.services.render import connect_ws, ws_keepalive
 from src.uploader.workers.upload import upload_worker
 from src.uploader.workers.score import score_worker
 from src.uploader.workers.submit_render import submit_render_worker
@@ -34,6 +34,7 @@ async def main():
         submit_render_worker(db),
         get_render_worker(db),
         upload_worker(db, youtube),
+        ws_keepalive()
     )
 
 
