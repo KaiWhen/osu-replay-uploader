@@ -21,6 +21,13 @@ osu = OssapiAsync(
 )
 
 
+def _headless_reauth(self, *args, **kwargs):
+    raise RuntimeError("needs re-auth")
+
+# monkey patch to raise error so when it tries to re-auth every 24 hrs it doesnt get stuck
+osu._new_authorization_grant = _headless_reauth.__get__(osu, type(osu))
+
+
 def get_youtube():
     creds = Credentials.from_authorized_user_file(TOKENS_DIR / "youtube_token.json", YOUTUBE_SCOPES)
     return build("youtube", "v3", credentials=creds)
