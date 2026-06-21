@@ -161,9 +161,15 @@ async def create_thumbnail(score_id: int) -> str:
         font=pp_font
     )
     # bpm text
+    image = ImageDraw.Draw(thumbnail)
+    _, _, bpm_w, _ = image.textbbox((0, 0), bpm_text, font=bpm_font)
+    bpm_box_left = 1054
+    bpm_box_right = 1239
+    bpm_box_center_x = (bpm_box_left + bpm_box_right) // 2
+    bpm_x = bpm_box_center_x - bpm_w // 2
     thumbnail = draw_text_with_shadow(
         thumbnail,
-        (1071, 40),
+        (bpm_x, 40),
         bpm_text,
         (255, 255, 255),
         font=bpm_font,

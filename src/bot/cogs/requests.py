@@ -110,13 +110,17 @@ class Requests(commands.Cog):
         mods = sort_mods(mods)
         mods_str = f" {"+"}{"".join(mods)} " if len(mods) > 0 else " "
         status = score.beatmap.status.__str__()[11:]
-        ar_str, od_str, cs_str, bpm_str, sr_string = await map_difficulty_to_str(score, mods, acc)
+        ar_str, od_str, cs_str, bpm_str, sr_string, pp = await map_difficulty_to_str(score, mods, acc)
         meh = score.statistics.meh if score.statistics.meh else 0
         ok = score.statistics.ok if score.statistics.ok else 0
         great = score.statistics.great if score.statistics.great else 0
         misses = score.statistics.miss if score.statistics.miss else 0
         hit_count_str = f"[{great}/{ok}/{meh}/{misses}]"
         country_ranking = get_map_country_rank(score, beatmap_scores)
+
+        pp_str = f"{round(score.pp)}PP"
+        if status == "LOVED":
+            pp_str = f"{round(pp)}PP"
 
         em = discord.Embed()
         em.set_author(
@@ -126,7 +130,7 @@ class Requests(commands.Cog):
             url=f"https://osu.ppy.sh/b/{score.beatmap.id}"
         )
         em.add_field(
-            name=f"{round(score.pp)}pp ▸ {acc}% ▸ {score.max_combo}/{score.beatmap.max_combo}x "
+            name=f"{pp_str} ▸ {acc}% ▸ {score.max_combo}/{score.beatmap.max_combo}x "
             f"▸ {hit_count_str}",
             value=f"{bpm_str}bpm ▸ AR{ar_str} ▸ CS{cs_str} ▸ OD{od_str} ▸ {status} ▸ "
             f"🌐 #{score.rank_global} ▸ 🇮🇪 #{country_ranking}\nDate set: {str(score.ended_at)[:-6]}"

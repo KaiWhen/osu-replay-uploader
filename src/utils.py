@@ -118,7 +118,7 @@ def calc_map_difficulty(base_ar: float, base_od: float, base_cs: float,
     return ar, od, cs, bpm
 
 
-async def map_difficulty_to_str(score_obj, mods: list[str], acc: float) -> tuple[str, str, str, str, str]:
+async def map_difficulty_to_str(score_obj, mods: list[str], acc: float) -> tuple[str, str, str, str, str, float]:
     base_ar = score_obj.beatmap.ar
     base_od = score_obj.beatmap.accuracy
     base_cs = score_obj.beatmap.cs
@@ -127,7 +127,7 @@ async def map_difficulty_to_str(score_obj, mods: list[str], acc: float) -> tuple
 
     difficulty_mods = get_difficulty_mods(mods)
     ar_str, od_str, cs_str, bpm_str = calc_map_difficulty(base_ar, base_od, base_cs, base_bpm, difficulty_mods)
-    star_rating, _ = await calc_sr(score_obj, mods, acc)
+    star_rating, pp = await calc_sr(score_obj, mods, acc)
     sr_string = star_rating if star_rating > 0 else base_star_rating
 
     ar, od, cs, bpm = calc_map_difficulty(base_ar, base_od, base_cs, base_bpm, mods)
@@ -137,7 +137,7 @@ async def map_difficulty_to_str(score_obj, mods: list[str], acc: float) -> tuple
     has_speed_mod = any(mod in SPEED_MODS for mod in mods)
     bpm_str = f"{base_bpm} ({bpm})" if has_speed_mod else str(bpm)
 
-    return ar_str, od_str, cs_str, bpm_str, sr_string
+    return ar_str, od_str, cs_str, bpm_str, sr_string, pp
 
 
 async def calc_sr(score_obj, mods: list[str], acc: float):
