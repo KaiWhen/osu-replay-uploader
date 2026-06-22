@@ -74,8 +74,8 @@ async def create_thumbnail(score_id: int) -> str:
     title_majority_upper = is_majority_upper(title_text)
     if not title_majority_upper and len(title_text) > 44:
         title_text = title_text[:41] + "..."
-    elif title_majority_upper and len(title_text) > 37:
-        title_text = title_text[:34] + "..."
+    elif title_majority_upper and len(title_text) > 35:
+        title_text = title_text[:32] + "..."
 
     diff_text = f"[{score_obj.beatmap.version}]"
     diff_majority_upper = is_majority_upper(diff_text)
