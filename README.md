@@ -2,7 +2,7 @@
 
 This project is a rewrite of [oie-replay-uploader-old](https://github.com/KaiWhen/oie-replay-uploader-old)
 with many improvements and more features. It is mainly used for uploading Ireland's replays.
-<br>
+<br><br>
 The bot mainly does the following:
 - Tracks top 10 personal pp plays and #1 global scores of the top 100 players of Ireland.
 - Renders videos using [o!rdr](https://ordr.issou.best/), an osu! replay rendering service.
