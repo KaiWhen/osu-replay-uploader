@@ -84,6 +84,7 @@ async def configure_metadata(db: AsyncDatabase, score_id: int, video_path: str):
 
 async def _create_description(db: AsyncDatabase, score_obj, user_obj, acc: float, mods: list[str], sbs: int) -> str:
     ar_str, od_str, cs_str, bpm_str, sr_string, pp = await map_difficulty_to_str(score_obj, mods, acc)
+    username = user_obj.username.replace(' ', '_')
     user_stats = user_obj.statistics
     global_rank = user_stats.global_rank
     country_rank = user_stats.country_rank
@@ -105,7 +106,7 @@ async def _create_description(db: AsyncDatabase, score_obj, user_obj, acc: float
     skin_id = DEFAULT_SKIN_ID
     if user_skin:
         skin_id = user_skin['skin_id']
-    
+
     description = [
         "👤 Player info",
         f"Profile: https://osu.ppy.sh/users/{score_obj.user_id}",
@@ -134,8 +135,10 @@ async def _create_description(db: AsyncDatabase, score_obj, user_obj, acc: float
         "Replay rendering service: https://ordr.issou.best/",
         "Renderer: https://github.com/Wieku/danser-go",
         "",
+        "Help keep things running: https://ko-fi.com/osuirelandreplays",
         "",
-        f"#{user_obj.username} #osuireland",
+        "",
+        f"#{username} #osuireland",
     ]
 
     return "\n".join(description)
