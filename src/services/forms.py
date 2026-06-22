@@ -42,7 +42,7 @@ async def get_form_resp():
             score['err'] = "Invalid score ID."
             scores.append(score)
             continue
-        if score._user.country_code != "IE":
+        if score_obj._user.country_code != "IE":
             score['err'] = "This player is not from Ireland bruh"
             scores.append(score)
             continue

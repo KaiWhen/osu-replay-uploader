@@ -82,6 +82,10 @@ async def submit_render(db: AsyncDatabase, score_id: int, replay_data) -> str | 
     score = await get_score(db, {'score_id': score_id})
     skin = await db['skins'].find_one({'user_id': score['user_id']})
     skin_id = skin['skin_id'] if skin else DEFAULT_SKIN_ID
+    mods = score['mods']
+    add_pitch = "true"
+    if "NC" in mods or "DC" in mods:
+        add_pitch = "false"
 
     async with aiohttp.ClientSession() as session:
         form = aiohttp.FormData()
@@ -96,7 +100,7 @@ async def submit_render(db: AsyncDatabase, score_id: int, replay_data) -> str | 
         form.add_field('showScoreboard', "true")
         form.add_field('showAvatarsOnScoreboard', "true")
         form.add_field('showStrainGraph', "true")
-        form.add_field('addPitch', "true")
+        form.add_field('addPitch', add_pitch)
         form.add_field('verificationKey', ORDR_KEY)
         form.add_field('replayFile', replay_data, filename=f"{score_id}.osr", content_type='application/octet-stream')
 
