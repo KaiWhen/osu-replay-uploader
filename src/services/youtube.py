@@ -35,7 +35,6 @@ async def upload_video(db, youtube, score_id: int, options: dict) -> str:
         )
         result = await _resumable_upload(insert_request)
         video_id = result['id']
-        print(f"Video id {video_id} was successfully uploaded.")
         sys.stdout.write(f"Video id {video_id} was successfully uploaded.\n")
         await update_score(db, score_id, { 'video_id': video_id })
     except Exception as e:
