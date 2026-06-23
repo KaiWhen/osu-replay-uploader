@@ -1,3 +1,4 @@
+import sys
 from ossapi import OssapiAsync
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
@@ -22,9 +23,11 @@ osu = OssapiAsync(
 
 
 def _headless_reauth(self, *args, **kwargs):
-    raise RuntimeError("needs re-auth")
+    sys.stdout.write("needs to refresh token, exiting...\n")
+    sys.stdout.flush()
+    raise SystemExit(1)
 
-# monkey patch to raise error so when it tries to re-auth every 24 hrs it doesnt get stuck
+# monkey patch to raise error so when refreshing token gets stuck or fails it doesnt get stuck
 osu._new_authorization_grant = _headless_reauth.__get__(osu, type(osu))
 
 

@@ -1,13 +1,14 @@
 import asyncio
 import sys
 from datetime import datetime
+from pymongo.asynchronous.database import AsyncDatabase
 from src.services.score import get_top_scores, get_score_data
 from src.db.scores import insert_score
 from src.db.jobs import enqueue
 from src.config import SCORE_WORKER_POLL_INTERVAL
 
 
-async def score_worker(db):
+async def score_worker(db: AsyncDatabase):
     while True:
         try:
             sys.stdout.write(f"[{datetime.now()}] score_worker POLLING\n")
