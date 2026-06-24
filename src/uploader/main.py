@@ -1,7 +1,7 @@
 import asyncio
 import os
 from datetime import datetime
-from src.clients import get_youtube
+from src.clients import get_youtube, ping_osu
 from src.db.mongo import db
 from src.db.jobs import recover_stale_jobs
 from src.db.status import get_status, insert_status
@@ -26,6 +26,7 @@ async def main():
             'form_updated': timestamp
         })
 
+    await ping_osu()
     await connect_ws()
     youtube = get_youtube()
     await recover_stale_jobs(db)

@@ -6,7 +6,15 @@ import re
 from PIL import Image, ImageFont, ImageDraw, ImageFilter
 from src.clients import osu
 from src.config import THUMBNAILS_DIR
-from src.utils import calc_bpm, calc_sr, download_map, get_map_country_rank, is_majority_upper, sort_mods, get_sb_from_video
+from src.utils import (
+    calc_bpm,
+    calc_sr,
+    download_map,
+    get_map_country_rank,
+    is_majority_upper,
+    sort_mods,
+    get_sb_from_video
+)
 
 
 async def create_thumbnail(score_id: int) -> str:
@@ -72,10 +80,13 @@ async def create_thumbnail(score_id: int) -> str:
 
     title_text = f"{score_obj.beatmapset.artist} - {score_obj.beatmapset.title}"
     title_majority_upper = is_majority_upper(title_text)
-    if not title_majority_upper and len(title_text) > 44:
-        title_text = title_text[:41] + "..."
+    title_x_offset = 0
+    if not title_majority_upper and len(title_text) > 42:
+        title_text = title_text[:39] + "..."
+        title_x_offset = 20
     elif title_majority_upper and len(title_text) > 35:
         title_text = title_text[:32] + "..."
+        title_x_offset = 20
 
     diff_text = f"[{score_obj.beatmap.version}]"
     diff_majority_upper = is_majority_upper(diff_text)
@@ -130,7 +141,7 @@ async def create_thumbnail(score_id: int) -> str:
     ranking_font = ImageFont.truetype(nexa_heavy, 35)
     country_font = ImageFont.truetype(nexa_heavy, 42)
     user_font = ImageFont.truetype(futura_medium, 45)
-    miss_font = ImageFont.truetype(google_flex_medium, 105 if 'SB' in miss_text else 138)
+    miss_font = ImageFont.truetype(google_flex_medium, 105 if 'SB' in miss_text else 125)
     bpm_font = ImageFont.truetype(google_flex_medium, 38)
 
     thumbnail.paste(base, (0, 0), base)
@@ -316,8 +327,22 @@ async def create_thumbnail(score_id: int) -> str:
     image = ImageDraw.Draw(thumbnail)
     # title text
     _, _, title_w, _ = image.textbbox((0, 0), title_text, font=title_font)
-    draw_text_with_spacing(image, ((bg_w - title_w)/2 + 1, 137), title_text, (26, 26, 26), font=title_font, stroke_width=1, spacing=-1)
-    draw_text_with_spacing(image, ((bg_w - title_w)/2, 135), title_text, (255, 255, 255), font=title_font, spacing=-1)
+    draw_text_with_spacing(
+        image,
+        ((bg_w - title_w)/2 + 1 + title_x_offset, 137),
+        title_text, (26, 26, 26),
+        font=title_font,
+        stroke_width=1,
+        spacing=-1
+    )
+    draw_text_with_spacing(
+        image,
+        ((bg_w - title_w)/2 + title_x_offset, 135),
+        title_text,
+        (255, 255, 255),
+        font=title_font,
+        spacing=-1
+    )
 
     thumbnail = thumbnail.convert('RGB')
     thumbnail.save(thumb_path)

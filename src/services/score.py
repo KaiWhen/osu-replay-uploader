@@ -10,6 +10,8 @@ from src.utils import sort_mods
 from pymongo.asynchronous.database import AsyncDatabase
 
 TWO_DAYS = 172800
+TWELVE_MINUTES = 720
+FIVE_DAYS = 432000
 
 
 async def get_top100() -> list[int]:
@@ -39,11 +41,12 @@ async def get_top_scores(db: AsyncDatabase) -> list[int]:
 
         # add recent top score
         for score in scores_top10:
-            if not score:
-                continue
-            if datetime.timestamp(score.ended_at) - status['last_updated'] < 0:
-                continue
             if not score.replay:
+                continue
+            if datetime.timestamp(score.ended_at) - status['last_updated'] < -TWELVE_MINUTES:
+                continue
+            db_score = await get_score(db, {'score_id': score.id})
+            if db_score:
                 continue
             valid_scores.append(score.id)
 
@@ -62,13 +65,15 @@ async def get_top_scores(db: AsyncDatabase) -> list[int]:
             if score.rank_global and score.rank_global == 1:
                 now = datetime.now()
                 timestamp = datetime.timestamp(now)
-                if (not score
-                    or datetime.timestamp(score.ended_at) - status['last_updated'] < 0
+                if (datetime.timestamp(score.ended_at) - status['last_updated'] < -TWELVE_MINUTES
                     or not score.replay
                     or score.beatmap.difficulty_rating < 4
                     or not score.passed
                     or score.id in valid_scores):
                         continue
+                db_score = await get_score(db, {'score_id': score.id})
+                if db_score:
+                    continue
                 try:
                     beatmapset = await asyncio.wait_for(
                         score.beatmap.beatmapset(),
@@ -76,7 +81,7 @@ async def get_top_scores(db: AsyncDatabase) -> list[int]:
                     )
                 except Exception as e:
                     sys.stdout.write(f"Error getting beatmapset: {e}\n")
-                if timestamp - datetime.timestamp(beatmapset.ranked_date) < 432000:
+                if timestamp - datetime.timestamp(beatmapset.ranked_date) < FIVE_DAYS:
                     continue
                 valid_scores.append(score.id)
 

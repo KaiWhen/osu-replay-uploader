@@ -1,5 +1,5 @@
 import sys
-from ossapi import OssapiAsync
+from ossapi import OssapiAsync, Scope
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 from src.config import (
@@ -18,7 +18,8 @@ osu = OssapiAsync(
     OSU_REDIRECT_URI,
     grant="authorization",
     token_key="osutoken",
-    token_directory=str(TOKENS_DIR)
+    token_directory=str(TOKENS_DIR),
+    scopes=['public', 'identify']
 )
 
 
@@ -29,6 +30,14 @@ def _headless_reauth(self, *args, **kwargs):
 
 # monkey patch to raise error so when refreshing token gets stuck or fails it doesnt get stuck
 osu._new_authorization_grant = _headless_reauth.__get__(osu, type(osu))
+
+
+async def ping_osu():
+    try:
+        await osu.get_me()
+        sys.stdout.write("Connection to osu API successful\n")
+    except Exception as e:
+        raise Exception(f"Connection to osu API FAILED: {e}\n")
 
 
 def get_youtube():
