@@ -16,7 +16,7 @@ async def get_score(db: AsyncDatabase, query: dict) -> _DocumentType | None:
 
 
 async def get_scores(db: AsyncDatabase, query: dict) -> Cursor[_DocumentType]:
-    return await db['scores'].find(query)
+    return await db['scores'].find(query).to_list(length=None)
 
 
 async def update_score(db: AsyncDatabase, score_id: int, set_query: dict) -> bool:

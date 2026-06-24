@@ -4,9 +4,12 @@ import sys
 from datetime import datetime
 from src.clients import osu
 from src.db.status import get_status, update_status
+from src.db.scores import get_scores, get_score, update_score
 from src.config import COUNTRY_CODE
 from src.utils import sort_mods
 from pymongo.asynchronous.database import AsyncDatabase
+
+TWO_DAYS = 172800
 
 
 async def get_top100() -> list[int]:
@@ -115,3 +118,38 @@ async def get_replay_data(score_id: int):
     except Exception as e:
         sys.stdout.write(f"Replay download failed for {score_id}: {e}\n")
         return None
+
+
+async def delete_recent_overwritten_score(db: AsyncDatabase, score_id, youtube):
+    score = await osu.score(score_id=score_id)
+    old_scores = await get_scores(db, {"map_id": score.beatmap.id, "user_id": score.user_id, "deleted": False})
+    if not old_scores:
+        return
+    timestamps = []
+    for s in old_scores:
+        if score.id == s['score_id']:
+            continue
+        timestamps.append(s['timestamp'])
+    if len(timestamps) == 0:
+        return
+    recent_timestamp = max(timestamps)
+    old_score = await get_score(db, {"map_id": score.beatmap.id, "user_id": score.user_id, "timestamp": recent_timestamp})
+    old_mods = old_score['mods']
+    mods = [mod.acronym for mod in score.mods]
+    sorted_mods = sort_mods(mods)
+    mods_str = "".join(sorted_mods)
+    if mods_str == old_mods or ("DT" or "NC" in mods_str and old_mods):
+        now = datetime.now()
+        timestamp = datetime.timestamp(now)
+        if timestamp - old_score['timestamp'] < TWO_DAYS:
+            request = youtube.videos().update(
+                part="status",
+                body={
+                    'id': old_score['video_id'],
+                    'status': {
+                        'privacyStatus': "private"
+                    }
+                }
+            )
+            request.execute()
+            await update_score(db, old_score['score_id'], {'deleted': True})

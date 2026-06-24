@@ -30,7 +30,7 @@ async def main():
     youtube = get_youtube()
     await recover_stale_jobs(db)
     await asyncio.gather(
-        score_worker(db),
+        score_worker(db, youtube),
         submit_render_worker(db),
         get_render_worker(db),
         upload_worker(db, youtube),
