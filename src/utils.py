@@ -4,6 +4,7 @@ import sys
 import aiofiles
 import aiohttp
 import subprocess
+from ossapi import Score
 import pytesseract
 from datetime import datetime, timezone
 from PIL import Image
@@ -140,7 +141,7 @@ async def map_difficulty_to_str(score_obj, mods: list[str], acc: float) -> tuple
     return ar_str, od_str, cs_str, bpm_str, sr_string, pp
 
 
-async def calc_sr(score_obj, mods: list[str], acc: float):
+async def calc_sr(score_obj: Score, mods: list[str], acc: float):
     diff_name = parse_diff_name(score_obj.beatmap.version)
     set_id = score_obj.beatmapset.id
     map_dir = MAPS_DIR / f"{set_id}"
@@ -159,13 +160,17 @@ async def calc_sr(score_obj, mods: list[str], acc: float):
 
     if "CL" not in mods:
         mods.append("CL")
+    
+    misses = score_obj.statistics.miss if score_obj.statistics.miss else 0
 
     calc = OsuCalculator()
     res = calc.calculate(
         file_path=file_path,
         mode=0,
-        mods=mods, 
+        mods=mods,
         acc=acc,
+        misses=misses,
+        combo=score_obj.max_combo,
         legacy_total_score=1000000
     )
 
