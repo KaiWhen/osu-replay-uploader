@@ -64,7 +64,7 @@ async def get_top_scores(db: AsyncDatabase) -> list[int]:
 
         # add #1 global scores
         for score in scores_recent20:
-            legacy_rank_1 = is_legacy_rank_1(score)
+            legacy_rank_1 = await is_legacy_rank_1(score)
             if score.rank_global and (score.rank_global == 1 or legacy_rank_1):
                 now = datetime.now()
                 timestamp = datetime.timestamp(now)
