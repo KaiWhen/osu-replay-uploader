@@ -53,6 +53,40 @@ def ms_to_ar(ms: float) -> float:
         return 5 + (1200 - ms) / 150
 
 
+def calc_legacy_grade(score: Score, mods: list[str]) -> str:
+    count_300 = score.statistics.great if score.statistics.great else 0
+    count_100 = score.statistics.ok if score.statistics.ok else 0
+    count_50 = score.statistics.meh if score.statistics.meh else 0
+    count_miss = score.statistics.miss if score.statistics.miss else 0
+    total = count_300 + count_100 + count_50 + count_miss
+    if total == 0:
+        return "D"
+
+    ratio_300 = count_300 / total
+    ratio_50 = count_50 / total
+
+    if ratio_300 == 1.0:
+        grade = "SS"
+    elif ratio_300 > 0.9 and ratio_50 <= 0.01 and count_miss == 0:
+        grade = "S"
+    elif (ratio_300 > 0.8 and count_miss == 0) or ratio_300 > 0.9:
+        grade = "A"
+    elif (ratio_300 > 0.7 and count_miss == 0) or ratio_300 > 0.8:
+        grade = "B"
+    elif ratio_300 > 0.6:
+        grade = "C"
+    else:
+        grade = "D"
+
+    if 'HD' in mods or 'FL' in mods:
+        if grade == "SS":
+            return "SSH"
+        if grade == "S":
+            return "SH"
+
+    return grade
+
+
 def calc_ar(base_ar: float, mods: list[str]) -> float:
     ar = base_ar
     if 'EZ' in mods:

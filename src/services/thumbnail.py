@@ -8,6 +8,7 @@ from src.clients import osu
 from src.config import THUMBNAILS_DIR
 from src.utils import (
     calc_bpm,
+    calc_legacy_grade,
     calc_sr,
     download_map,
     get_map_country_rank,
@@ -33,11 +34,14 @@ async def create_thumbnail(score_id: int) -> str:
 
     if not os.path.exists(THUMBNAILS_DIR / str(score_id)):
         os.mkdir(THUMBNAILS_DIR / str(score_id))
-
-    rank = score_obj.rank.__str__()[6:]
+    
     user_id = score_obj.user_id
     status_string = score_obj.beatmap.status.__str__()[11:]
     mods = [mod.acronym for mod in score_obj.mods]
+
+    rank = score_obj.rank.__str__()[6:]
+    if 'CL' in mods:
+        rank = calc_legacy_grade(score_obj, mods)
 
     async with aiohttp.ClientSession() as session:
         async with session.get(f"https://a.ppy.sh/{user_id}") as r:

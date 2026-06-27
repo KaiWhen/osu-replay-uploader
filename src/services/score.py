@@ -2,6 +2,8 @@ import asyncio
 import io
 import sys
 from datetime import datetime
+
+from ossapi import Score
 from src.clients import osu
 from src.db.status import get_status, update_status
 from src.db.scores import get_scores, get_score, update_score
@@ -62,7 +64,8 @@ async def get_top_scores(db: AsyncDatabase) -> list[int]:
 
         # add #1 global scores
         for score in scores_recent20:
-            if score.rank_global and score.rank_global == 1:
+            legacy_rank_1 = is_legacy_rank_1(score)
+            if score.rank_global and (score.rank_global == 1 or legacy_rank_1):
                 now = datetime.now()
                 timestamp = datetime.timestamp(now)
                 if (datetime.timestamp(score.ended_at) - status['last_updated'] < -TWELVE_MINUTES
@@ -123,6 +126,14 @@ async def get_replay_data(score_id: int):
     except Exception as e:
         sys.stdout.write(f"Replay download failed for {score_id}: {e}\n")
         return None
+
+
+async def is_legacy_rank_1(score: Score):
+    scores = await osu.beatmap_scores(beatmap_id=score.beatmap.id, mode="osu", limit=1, legacy_only=True)
+    for s in scores:
+        if s.user_id == score.user_id:
+            return True
+    return False
 
 
 async def delete_recent_overwritten_score(db: AsyncDatabase, score_id, youtube):
