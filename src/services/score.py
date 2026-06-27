@@ -130,7 +130,7 @@ async def get_replay_data(score_id: int):
 
 async def is_legacy_rank_1(score: Score):
     scores = await osu.beatmap_scores(beatmap_id=score.beatmap.id, mode="osu", limit=1, legacy_only=True)
-    for s in scores:
+    for s in scores.scores:
         if s.user_id == score.user_id:
             return True
     return False
