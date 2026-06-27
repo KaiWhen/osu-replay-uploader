@@ -116,6 +116,13 @@ async def create_thumbnail(score_id: int) -> str:
     sr, pp = await calc_sr(score_obj, mods, acc)
     if sr > 0:
         sr_text = f"{sr}"
+    sr_font_size = 62
+    sr_text_y_offset = 0
+    sr_text_x_offset = 0
+    if len(sr_text) > 4:
+        sr_font_size = 54
+        sr_text_y_offset = 4
+        sr_text_x_offset = -12
 
     pp_text = "0PP"
     if status_string in ['RANKED', 'APPROVED']:
@@ -142,6 +149,7 @@ async def create_thumbnail(score_id: int) -> str:
     diff_font = ImageFont.truetype(futura_medium, 54)
     acc_font = ImageFont.truetype(google_flex_regular, acc_pp_font_size)
     pp_font = ImageFont.truetype(google_flex_medium, acc_pp_font_size)
+    sr_font = ImageFont.truetype(google_flex_medium, sr_font_size)
     ranking_font = ImageFont.truetype(nexa_heavy, 35)
     country_font = ImageFont.truetype(nexa_heavy, 42)
     user_font = ImageFont.truetype(futura_medium, 45)
@@ -170,10 +178,10 @@ async def create_thumbnail(score_id: int) -> str:
     # sr text
     thumbnail = draw_text_with_shadow(
         thumbnail,
-        (623 if len(sr_text) <= 4 else 608, 5),
+        (620 + sr_text_x_offset, 5 + sr_text_y_offset),
         sr_text,
         (255, 255, 255),
-        font=pp_font
+        font=sr_font
     )
     # bpm text
     image = ImageDraw.Draw(thumbnail)
