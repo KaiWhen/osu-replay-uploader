@@ -72,7 +72,7 @@ class JobsFeed(commands.Cog):
         )
         em.add_field(
             name=f"Job Status: {job['status'].upper()}",
-            value=f"*Stage*: {job['type'].upper()}   ▸   *Attempt*: {job['attempts']}",
+            value=f"*Stage*: {job['type'].upper()}   ▸   *Retry Attempt*: {job['attempts']}",
             inline=False
         )
         if job['error']:

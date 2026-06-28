@@ -24,8 +24,8 @@ async def create_thumbnail(score_id: int) -> str:
         return str(thumb_path)
 
     score_obj = await osu.score(score_id=score_id)
-    user_obj = await osu.user(user=score_obj.user_id)
-    beatmap_score_obj = await osu.beatmap_scores(beatmap_id=score_obj.beatmap.id, mode="osu", type="country")
+    user_obj = await osu.user(user=score_obj.user_id, mode="osu")
+    beatmap_score_obj = await osu.beatmap_scores(beatmap_id=score_obj.beatmap.id, mode="osu", type="country", limit=100)
     scores_top50 = await osu.user_scores(user_id=score_obj.user_id, type="best", limit=50, mode="osu")
 
     set_id = score_obj.beatmapset.id
@@ -34,7 +34,7 @@ async def create_thumbnail(score_id: int) -> str:
 
     if not os.path.exists(THUMBNAILS_DIR / str(score_id)):
         os.mkdir(THUMBNAILS_DIR / str(score_id))
-    
+
     user_id = score_obj.user_id
     status_string = score_obj.beatmap.status.__str__()[11:]
     mods = [mod.acronym for mod in score_obj.mods]
@@ -74,11 +74,10 @@ async def create_thumbnail(score_id: int) -> str:
 
     if country_ranking > 0:
         country_ranking_text = f"#{country_ranking}"
-        country_rank_text = f"#{user_obj.statistics.country_rank}"
     else:
         country_ranking_text = f"#-"
-        country_rank_text = f"#-"
 
+    country_rank_text = f"#{user_obj.statistics.country_rank}"
     global_ranking_text = f"#{score_obj.rank_global}"
     global_rank_text = f"#{user_obj.statistics.global_rank}"
 
@@ -461,7 +460,6 @@ async def get_map_bg(set_id: int, diff: str) -> str:
         if fname.casefold().endswith(f"[{diff_name}].osu"):
             f = open(f"maps/{set_id}/{fname}", 'r')
             file_strings = re.findall('(?:")([^"]*)(?:")', f.read())
-            # print(file_strings)
             for string in file_strings:
                 if (string.casefold().endswith(".png")
                     or string.casefold().endswith(".jpg")

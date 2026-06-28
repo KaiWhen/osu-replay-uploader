@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DEV_MODE = 1
+DEV_MODE = 0
 
 # paths
 BASE_DIR = Path(__file__).parent.parent
@@ -26,7 +26,7 @@ OSU_REDIRECT_URI = "http://localhost:3000"
 GOOGLE_REDIRECT_URI = "http://localhost:8080/oauth/callback"
 YOUTUBE_SCOPES = ["https://www.googleapis.com/auth/youtube.force-ssl", "https://www.googleapis.com/auth/youtube.upload"]
 FORMS_SCOPES = ["https://www.googleapis.com/auth/forms.responses.readonly"]
-DRIVE_SCOPES = ['https://www.googleapis.com/auth/drive.metadata', 'https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/drive.file']
+DRIVE_SCOPES = ["https://www.googleapis.com/auth/drive.metadata", "https://www.googleapis.com/auth/drive", "https://www.googleapis.com/auth/drive.file"]
 FORM_ID = "1quic99kn_XTBrMaZA8un_j3Xr5Xk98wY2-bYwteQx5s"
 FORM_SCORE_ANSWER_ID = "7f0c0670"
 FORM_FILE_ANSWER_ID = "168ed010"
@@ -35,9 +35,9 @@ FORM_FILE_ANSWER_ID = "168ed010"
 DISCORD_TOKEN = os.environ["BOT_TOKEN"]
 ADMIN_USER_ID = 282617728320405514
 DISCORD_NOTIFICATION_CHANNEL_ID = 1514284145411621085 if DEV_MODE else 257559748075847680
-DISCORD_REQUESTS_CHANNEL_ID = 1106553041836052501 if DEV_MODE else 1110508875238604871
+DISCORD_REQUESTS_CHANNEL_ID = 1520915278538739762 if DEV_MODE else 1106553041836052501
 DISCORD_JOBS_FEED_CHANNEL_ID = 1513692244291620904
-VOTES_REQUIRED = 1 if DEV_MODE else 5
+VOTES_REQUIRED = 1 if DEV_MODE else 4
 
 # o!rdr
 ORDR_BASE_API_URL = "https://apis.issou.best"
@@ -58,4 +58,5 @@ JOB_RETRY_DELAY = 60
 STALE_JOB_THRESHOLD = 10*60
 
 # other
-COUNTRY_CODE = 'IE'
+COUNTRY_CODE = "IE"
+PRIVACY_STATUS = "public"

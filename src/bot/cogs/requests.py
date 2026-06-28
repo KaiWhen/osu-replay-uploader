@@ -89,7 +89,7 @@ class Requests(commands.Cog):
         embed = await self._build_embed(score, beatmap_scores)
         username = score._user.username
         message = await channel.send(
-            content=f"## **Replay upload request for score by {username}**",
+            content=f"## **Pending replay upload request for score by {username}**",
             embed=embed
         )
         await message.add_reaction("✅")

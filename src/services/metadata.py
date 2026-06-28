@@ -1,6 +1,6 @@
 import math
 from src.clients import osu
-from src.config import COUNTRY_CODE, DEFAULT_SKIN_ID
+from src.config import COUNTRY_CODE, DEFAULT_SKIN_ID, PRIVACY_STATUS
 from src.utils import calc_sr, get_sb_from_video, map_difficulty_to_str, sort_mods
 from pymongo.asynchronous.database import AsyncDatabase
 
@@ -39,7 +39,7 @@ async def configure_metadata(db: AsyncDatabase, score_id: int, video_path: str):
     elif sbs == 0 and not misses:
         miss_str = " FC"
 
-    map_title = f"{score_obj.beatmapset.artist_unicode} - {score_obj.beatmapset.title} [{score_obj.beatmap.version}]"
+    map_title = f"{score_obj.beatmapset.artist} - {score_obj.beatmapset.title} [{score_obj.beatmap.version}]"
     title_len = (
         len(map_title)
         + len(f"{username} | ")
@@ -50,7 +50,7 @@ async def configure_metadata(db: AsyncDatabase, score_id: int, video_path: str):
     )
     if title_len > 100:
         title_elems = [
-            f"{score_obj.beatmapset.artist_unicode}",
+            f"{score_obj.beatmapset.artist}",
             f"{score_obj.beatmapset.title}",
             f"{score_obj.beatmap.version}"
         ]
@@ -77,7 +77,7 @@ async def configure_metadata(db: AsyncDatabase, score_id: int, video_path: str):
         "description": f"{description}",
         "tags": f"osu!,osu ireland,{username},{tag_title} osu",
         "category": 20,
-        "privacyStatus": "private",
+        "privacyStatus": PRIVACY_STATUS,
         "thumb_path": ""
     }
 

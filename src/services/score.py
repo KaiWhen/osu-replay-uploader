@@ -2,7 +2,6 @@ import asyncio
 import io
 import sys
 from datetime import datetime
-
 from ossapi import Score
 from src.clients import osu
 from src.db.status import get_status, update_status
