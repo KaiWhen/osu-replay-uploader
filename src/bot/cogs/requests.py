@@ -57,7 +57,9 @@ class Requests(commands.Cog):
                     if r.normal_count >= VOTES_REQUIRED + 1:
                         if req['file_id']:
                             await delete_file(req['file_id'])
-                            os.remove(REPLAYS_DIR / f"{score_id}.osr")
+                            replay_path = REPLAYS_DIR / f"{score_id}.osr"
+                            if os.path.exists(replay_path):
+                                os.remove(replay_path)
                         await resolve_request(self.bot.db, req['_id'])
                         await message.edit(content="## ❌ rip bozo")
                         break

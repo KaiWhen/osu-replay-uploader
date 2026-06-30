@@ -57,8 +57,8 @@ async def get_form_resp():
                 score['err'] = "No downloadable/submitted replay data."
                 scores.append(score)
                 continue
-            if file_answer['mimeType'] != "application/x-osu-replay":
-                score['err'] = "Invalid file type."
+            if file_answer['mimeType'] not in ["application/x-osu-replay", "application/octet-stream"]:
+                score['err'] = f"Invalid file type: {file_answer['mimeType']}"
                 scores.append(score)
                 await delete_file(file_id)
                 score['file_id'] = "DELETED"
