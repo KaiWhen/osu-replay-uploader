@@ -1,5 +1,6 @@
 from datetime import datetime
 import os
+from ossapi import GameMode
 from src.clients import get_forms, osu
 from src.db.requests import get_pending_request
 from src.db.scores import get_score
@@ -45,6 +46,10 @@ async def get_form_resp():
             continue
         if score_obj._user.country_code != "IE":
             score['err'] = "This player is not from Ireland bruh"
+            scores.append(score)
+            continue
+        if score_obj.beatmap.mode != GameMode.OSU:
+            score['err'] = "Wrong gamemode buddy"
             scores.append(score)
             continue
         score_exists = await get_score(db, {'score_id': score_obj.id})
