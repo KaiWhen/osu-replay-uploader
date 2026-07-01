@@ -1,6 +1,7 @@
 from datetime import datetime
 import os
 from src.clients import get_forms, osu
+from src.db.requests import get_pending_request
 from src.db.scores import get_score
 from src.db.status import get_status, update_status
 from src.db.mongo import db
@@ -31,7 +32,7 @@ async def get_form_resp():
             file_id = file_answer['fileId']
 
         score = {
-            'score_id': score_id,
+            'score_id': int(score_id),
             'file_id': file_id,
             'valid': False,
             'err': None
@@ -49,6 +50,11 @@ async def get_form_resp():
         score_exists = await get_score(db, {'score_id': score_obj.id})
         if score_exists:
             score['err'] = "Score has already been submitted."
+            scores.append(score)
+            continue
+        request_exists = await get_pending_request(db, int(score_id))
+        if request_exists:
+            score['err'] = "There is already an unresolved request of this score."
             scores.append(score)
             continue
 

@@ -20,7 +20,7 @@ async def configure_metadata(db: AsyncDatabase, score_id: int, video_path: str):
     description = await _create_description(db, score_obj, user_obj, acc, mods, sbs)
     if 'CL' in mods:
         mods.remove('CL')
-    mods_str = "" if len(mods) == 0 else f"+{"".join(sort_mods(mods))}"
+    mods_str = " " if len(mods) == 0 else f" +{"".join(sort_mods(mods))} "
 
     _, calc_pp = await calc_sr(score_obj, mods, acc)
 
@@ -61,7 +61,7 @@ async def configure_metadata(db: AsyncDatabase, score_id: int, video_path: str):
         title_elems[longest_idx] = longest
         map_title = f"{title_elems[0]} - {title_elems[1]} [{title_elems[2]}]"
 
-    title = f"{username} | {map_title} {mods_str} {acc}%{pp_str}{miss_str}"
+    title = f"{username} | {map_title}{mods_str}{acc}%{pp_str}{miss_str}"
     special_chars = "<>"
     for c in title:
         if c in special_chars:

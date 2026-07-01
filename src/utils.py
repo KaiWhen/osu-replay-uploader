@@ -94,11 +94,11 @@ def calc_ar(base_ar: float, mods: list[str]) -> float:
     elif 'HR' in mods:
         ar = min(ar * 1.4, 10)
 
-    if 'HT' in mods:
+    if 'HT' in mods or 'DC' in mods:
         ms = ar_to_ms(ar)
         ms = ms * (4 / 3)
         ar = ms_to_ar(ms)
-    elif 'DT' in mods:
+    elif 'DT' in mods or 'NC' in mods:
         ms = ar_to_ms(ar)
         ms = ms * (2 / 3)
         ar = ms_to_ar(ms)
@@ -115,9 +115,9 @@ def calc_od(base_od: float, mods: list[str]) -> float:
         od = min(od * 1.4, 10)
 
     ms = 80 - 6 * od
-    if 'DT' in mods:
+    if 'DT' in mods or 'NC' in mods:
         ms = ms * (2 / 3)
-    elif 'HT' in mods:
+    elif 'HT' in mods or 'DC' in mods:
         ms = ms * (4 / 3)
 
     return round((80 - ms) / 6, 2)

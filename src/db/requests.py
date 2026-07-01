@@ -13,6 +13,10 @@ async def insert_request(db: AsyncDatabase, score_id: int, description: str, mes
     })
 
 
+async def get_pending_request(db: AsyncDatabase, score_id: int):
+    return await db['requests'].find_one({ 'score_id': score_id, 'resolved': False })
+
+
 async def get_pending_requests(db: AsyncDatabase) -> AsyncCursor | None:
     return await db['requests'].find({ 'resolved': False }).to_list(length=None)
 
