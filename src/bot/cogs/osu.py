@@ -104,8 +104,8 @@ class Osu(commands.Cog):
             if not beatmap_obj:
                 return await ctx.reply(content=f"**Map {map_id} not found.", mention_author=False)
 
-            embed = await self._build_map_embed(beatmap_obj, mods)
             beatmapset: Beatmapset = beatmap_obj.beatmapset()
+            embed = await self._build_map_embed(beatmap_obj, beatmapset, mods)
             map_path = MAPS_DIR / f"{beatmapset.id}"
             if os.path.exists(map_path):
                 shutil.rmtree(map_path)
