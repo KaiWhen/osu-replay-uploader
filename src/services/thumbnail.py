@@ -9,7 +9,7 @@ from src.config import THUMBNAILS_DIR
 from src.utils import (
     calc_bpm,
     calc_legacy_grade,
-    calc_sr,
+    calc_sr_pp,
     download_map,
     get_map_country_rank,
     is_majority_upper,
@@ -112,7 +112,7 @@ async def create_thumbnail(score_id: int) -> str:
 
     base_star_rating = round(score_obj.beatmap.difficulty_rating, 2)
     sr_text = f"{base_star_rating}"
-    sr, pp = await calc_sr(score_obj, mods, acc)
+    sr, pp, _ = await calc_sr_pp(score_obj, mods, acc)
     if sr > 0:
         sr_text = f"{sr}"
     sr_font_size = 62

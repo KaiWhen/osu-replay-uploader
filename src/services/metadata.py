@@ -1,7 +1,7 @@
 import math
 from src.clients import osu
 from src.config import COUNTRY_CODE, DEFAULT_SKIN_ID, PRIVACY_STATUS
-from src.utils import calc_sr, get_sb_from_video, map_difficulty_to_str, sort_mods
+from src.utils import calc_sr_pp, get_sb_from_video, map_difficulty_to_str, sort_mods
 from pymongo.asynchronous.database import AsyncDatabase
 
 
@@ -22,7 +22,7 @@ async def configure_metadata(db: AsyncDatabase, score_id: int, video_path: str):
         mods.remove('CL')
     mods_str = " " if len(mods) == 0 else f" +{"".join(sort_mods(mods))} "
 
-    _, calc_pp = await calc_sr(score_obj, mods, acc)
+    _, calc_pp, _ = await calc_sr_pp(score_obj, mods, acc)
 
     if status_string == "LOVED":
         pp = round(calc_pp)
@@ -83,7 +83,7 @@ async def configure_metadata(db: AsyncDatabase, score_id: int, video_path: str):
 
 
 async def _create_description(db: AsyncDatabase, score_obj, user_obj, acc: float, mods: list[str], sbs: int) -> str:
-    ar_str, od_str, cs_str, bpm_str, sr_string, pp = await map_difficulty_to_str(score_obj, mods, acc)
+    ar_str, od_str, cs_str, bpm_str, sr_string, pp, _ = await map_difficulty_to_str(score_obj, mods, acc)
     username = user_obj.username.replace(' ', '_')
     user_stats = user_obj.statistics
     global_rank = user_stats.global_rank

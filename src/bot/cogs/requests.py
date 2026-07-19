@@ -112,7 +112,7 @@ class Requests(commands.Cog):
         mods = sort_mods(mods)
         mods_str = f" {"+"}{"".join(mods)} " if len(mods) > 0 else " "
         status = score.beatmap.status.__str__()[11:]
-        ar_str, od_str, cs_str, bpm_str, sr_string, pp = await map_difficulty_to_str(score, mods, acc)
+        ar_str, od_str, cs_str, bpm_str, sr_string, pp, _ = await map_difficulty_to_str(score, mods, acc)
         meh = score.statistics.meh if score.statistics.meh else 0
         ok = score.statistics.ok if score.statistics.ok else 0
         great = score.statistics.great if score.statistics.great else 0

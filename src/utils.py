@@ -1,10 +1,13 @@
+import math
 import os
+import re
+from pathlib import Path
 import shutil
 import sys
 import aiofiles
 import aiohttp
 import subprocess
-from ossapi import Score
+from ossapi import Beatmap, Beatmapset, Score, Statistics
 import pytesseract
 from datetime import datetime, timezone
 from PIL import Image
@@ -17,10 +20,16 @@ SPECIAL_CHARS = "\":@%^*?=,<>/|"
 DIFFICULTY_MODS = {'EZ', 'HR', 'DT', 'NC', 'HT', 'DC'}
 SPEED_MODS = {'DT', 'NC', 'HT', 'DC'}
 MOD_ORDER = ['EZ', 'HT', 'DC', 'HD', 'TC', 'DT', 'NC', 'HR', 'FL', 'BL']
+VALID_MODS_FOR_CALC = {'EZ', 'HT', 'DC', 'HD', 'TC', 'DT', 'NC', 'HR', 'FL', 'BL', 'SO'}
 
 
 def to_rfc3339(timestamp: float) -> str:
     return datetime.fromtimestamp(timestamp, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def seconds_to_minutes(seconds):
+    minutes, secs = divmod(seconds, 60)
+    return f"{minutes}:{secs:02d}"
 
 
 def parse_diff_name(diff: str):
@@ -153,7 +162,7 @@ def calc_map_difficulty(base_ar: float, base_od: float, base_cs: float,
     return ar, od, cs, bpm
 
 
-async def map_difficulty_to_str(score_obj, mods: list[str], acc: float) -> tuple[str, str, str, str, str, float]:
+async def map_difficulty_to_str(score_obj, mods: list[str], acc: float, if_fc: bool=False) -> tuple[str, str, str, str, str, float, float]:
     base_ar = score_obj.beatmap.ar
     base_od = score_obj.beatmap.accuracy
     base_cs = score_obj.beatmap.cs
@@ -162,7 +171,7 @@ async def map_difficulty_to_str(score_obj, mods: list[str], acc: float) -> tuple
 
     difficulty_mods = get_difficulty_mods(mods)
     ar_str, od_str, cs_str, bpm_str = calc_map_difficulty(base_ar, base_od, base_cs, base_bpm, difficulty_mods)
-    star_rating, pp = await calc_sr(score_obj, mods, acc)
+    star_rating, pp, if_fc_pp = await calc_sr_pp(score_obj, mods, acc, if_fc)
     sr_string = star_rating if star_rating > 0 else base_star_rating
 
     ar, od, cs, bpm = calc_map_difficulty(base_ar, base_od, base_cs, base_bpm, mods)
@@ -170,12 +179,31 @@ async def map_difficulty_to_str(score_obj, mods: list[str], acc: float) -> tuple
     od_str = str(od) if len(difficulty_mods) == 0 else f"{base_od} ({od})"
     cs_str = str(cs) if 'EZ' not in mods and 'HR' not in mods else f"{base_cs} ({cs})"
     has_speed_mod = any(mod in SPEED_MODS for mod in mods)
-    bpm_str = f"{base_bpm} ({bpm})" if has_speed_mod else str(bpm)
+    bpm_str = f"{round(base_bpm)} ({round(bpm)})" if has_speed_mod else str(round(bpm))
 
-    return ar_str, od_str, cs_str, bpm_str, sr_string, pp
+    return ar_str, od_str, cs_str, bpm_str, sr_string, pp, if_fc_pp
 
 
-async def calc_sr(score_obj: Score, mods: list[str], acc: float):
+async def map_difficulty_to_str_nopp(beatmap: Beatmap, mods: list[str]) -> tuple[str, str, str, str]:
+    base_ar = beatmap.ar
+    base_od = beatmap.accuracy
+    base_cs = beatmap.cs
+    base_bpm = beatmap.bpm
+
+    difficulty_mods = get_difficulty_mods(mods)
+    ar_str, od_str, cs_str, bpm_str = calc_map_difficulty(base_ar, base_od, base_cs, base_bpm, difficulty_mods)
+
+    ar, od, cs, bpm = calc_map_difficulty(base_ar, base_od, base_cs, base_bpm, mods)
+    ar_str = str(ar) if len(difficulty_mods) == 0 else f"{base_ar} ({ar})"
+    od_str = str(od) if len(difficulty_mods) == 0 else f"{base_od} ({od})"
+    cs_str = str(cs) if 'EZ' not in mods and 'HR' not in mods else f"{base_cs} ({cs})"
+    has_speed_mod = any(mod in SPEED_MODS for mod in mods)
+    bpm_str = f"{round(base_bpm)} ({round(bpm)})" if has_speed_mod else str(round(bpm))
+
+    return ar_str, od_str, cs_str, bpm_str
+
+
+async def calc_sr_pp(score_obj: Score, mods: list[str], acc: float, if_fc: bool=False):
     diff_name = parse_diff_name(score_obj.beatmap.version)
     set_id = score_obj.beatmapset.id
     map_dir = MAPS_DIR / f"{set_id}"
@@ -188,35 +216,192 @@ async def calc_sr(score_obj: Score, mods: list[str], acc: float):
             return -1
 
     file_path = ""
+    original_file_path = ""
     for fname in os.listdir(map_dir):
         if fname.casefold().endswith(f"[{diff_name}].osu"):
-            file_path = f'maps/{set_id}/{fname}'
-
-    if "CL" not in mods:
-        mods.append("CL")
+            original_file_path = f'maps/{set_id}/{fname}'
+            file_path = original_file_path
     
+    stats = get_stats(score_obj)
+    passed = score_obj.passed
+    if not passed:
+        total = stats['great'] + stats['ok'] + stats['meh'] + stats['miss']
+        file_path = trim_hit_objects(file_path, total)
+
     misses = score_obj.statistics.miss if score_obj.statistics.miss else 0
+    lazer = False
+    if 'CL' not in mods:
+        lazer = True
 
     calc = OsuCalculator()
     res = calc.calculate(
         file_path=file_path,
         mode=0,
         mods=mods,
+        statistics=stats,
         acc=acc,
         misses=misses,
         combo=score_obj.max_combo,
-        legacy_total_score=1000000
+        legacy_total_score=1000000 if not lazer else 0
     )
 
+    original_res = None
+    if not passed:
+        original_res = calc.calculate(
+            file_path=original_file_path,
+            mode=0,
+            mods=mods,
+            statistics=stats,
+            acc=acc,
+            combo=score_obj.max_combo,
+            legacy_total_score=1000000 if not lazer else 0
+        )
+
+    if_fc_res = None
+    if if_fc:
+        max_great = score_obj.beatmap.count_spinners + score_obj.beatmap.count_circles + score_obj.beatmap.count_sliders
+        stats['great'] = max_great - stats['meh'] - stats['ok']
+        stats['miss'] = 0
+        if 'large_tick_hit' in stats:
+            stats['large_tick_hit'] = score_obj.maximum_statistics.large_tick_hit
+        acc = calc_stable_accuracy(stats) if lazer else calc_lazer_accuracy(stats, score_obj.maximum_statistics)
+        if_fc_res = calc.calculate(
+            file_path=original_file_path,
+            mode=0,
+            mods=mods,
+            statistics=stats,
+            acc=acc,
+            legacy_total_score=1000000 if not lazer else 0
+        )
+
     if res.is_success:
-        return round(res.stars, 2), res.pp
+        if_fc_pp = if_fc_res.pp if if_fc_res else 0
+        stars = math.floor((res.stars if passed else original_res.stars)*100) / 100.0
+        return stars, res.pp, {'if_fc_pp': if_fc_pp, 'stats': stats}
     else:
-        return -1, -1
+        return -1, -1, -1
+
+
+async def calc_pp_many(beatmap: Beatmap, beatmapset: Beatmapset, mods: list[str]):
+    diff_name = parse_diff_name(beatmap.version)
+    set_id = beatmapset.id
+    map_dir = MAPS_DIR / f"{set_id}"
+    if not os.path.exists(map_dir):
+        os.mkdir(map_dir)
+        try:
+            await download_map(set_id)
+        except Exception as e:
+            sys.stdout.write(f"Error downloading map: {e}\n")
+            return -1
+    
+    file_path = ""
+    for fname in os.listdir(map_dir):
+        if fname.casefold().endswith(f"[{diff_name}].osu"):
+            file_path = f'maps/{set_id}/{fname}'
+    
+    if 'CL' not in mods:
+        mods.append('CL')
+    
+    calc = OsuCalculator()
+    results = calc.calculate_many([
+        {"file_path": file_path, "mode": 0, "mods": mods, "acc": 95.0, "legacy_total_score": 1000000},
+        {"file_path": file_path, "mode": 0, "mods": mods, "acc": 98.0, "legacy_total_score": 1000000},
+        {"file_path": file_path, "mode": 0, "mods": mods, "acc": 99.0, "legacy_total_score": 1000000},
+        {"file_path": file_path, "mode": 0, "mods": mods, "acc": 100.0, "legacy_total_score": 1000000},
+    ])
+
+    return results
+
+
+def get_stats(score: Score):
+    meh = score.statistics.meh or 0
+    ok = score.statistics.ok or 0
+    great = score.statistics.great or 0
+    misses = score.statistics.miss or 0
+    slider_tail_hit = score.statistics.slider_tail_hit or 0
+    large_tick_hit = score.statistics.large_tick_hit or 0
+
+    stats = {
+        'great': great,
+        'ok': ok,
+        'meh': meh,
+        'miss': misses
+    }
+    if slider_tail_hit > 0:
+        stats['slider_tail_hit'] = slider_tail_hit
+    if large_tick_hit > 0:
+        stats['large_tick_hit'] = large_tick_hit
+    return stats
+
+
+def calc_stable_accuracy(stats) -> float:
+    count_great = stats['great']
+    count_ok = stats['ok']
+    count_meh = stats['meh']
+    count_miss = stats['miss']
+
+    total = 300 * count_great + 100 * count_ok + 50 * count_meh
+    max_ = 300 * (count_great + count_ok + count_meh + count_miss)
+
+    if max_ == 0:
+        return 0.0
+
+    return math.floor((total / max_)*10000) / 100.0
+
+
+def calc_lazer_accuracy(stats: dict, max_stats: Statistics) -> float:
+    count_great = stats['great']
+    count_ok = stats['ok']
+    count_meh = stats['meh']
+    count_miss = stats['miss']
+
+    count_slider_tail_hit = stats['slider_tail_hit']
+    count_slider_tails = max_stats.slider_tail_hit or 0
+
+    count_large_tick_hit = stats['large_tick_hit']
+    count_large_ticks = max_stats.large_tick_hit or 0
+
+    total = 6 * count_great + 2 * count_ok + count_meh
+    max_ = 6 * (count_great + count_ok + count_meh + count_miss)
+
+    total += 3 * count_slider_tail_hit
+    max_ += 3 * count_slider_tails
+
+    total += 0.6 * count_large_tick_hit
+    max_ += 0.6 * count_large_ticks
+
+    if max_ == 0:
+        return 0.0
+
+    return math.floor((total / max_)*10000) / 100.0
+
+
+def parse_map_args(args: str) -> tuple[int | None, list[str]]:
+    parts = args.strip().split()
+    map_id = None
+    mods_str = None
+
+    for part in parts:
+        url_match = re.search(r'osu\.ppy\.sh/beatmapsets/\d+#osu/(\d+)', part)
+        if url_match:
+            map_id = int(url_match.group(1))
+        elif part.isdigit():
+            map_id = int(part)
+        else:
+            mods_str = part
+
+    mods = []
+    if mods_str:
+        letters = re.sub(r'[^a-zA-Z]', '', mods_str).upper()
+        mods = [letters[i:i+2] for i in range(0, len(letters), 2)]
+    mods = [mod for mod in mods if mod in VALID_MODS_FOR_CALC]
+
+    return map_id, mods
 
 
 def get_map_country_rank(score_obj, beatmap_score_obj):
     for count, score in enumerate(beatmap_score_obj.scores, start=1):
-        if score.user_id == score_obj.user_id:
+        if score.id == score_obj.id:
             return count
     return -1
 
@@ -296,3 +481,30 @@ def is_majority_upper(s: str) -> bool:
         return False
 
     return upper_count > lower_count
+
+
+def trim_hit_objects(osu_file_path: str, keep: int = 30):
+    path = Path(osu_file_path)
+    output_path = path.with_stem(path.stem + "_trimmed")
+
+    with open(osu_file_path, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+
+    hit_objects_idx = None
+    for i, line in enumerate(lines):
+        if line.strip() == '[HitObjects]':
+            hit_objects_idx = i
+            break
+
+    if hit_objects_idx is None:
+        raise Exception("No [HitObjects] section found")
+
+    header = lines[:hit_objects_idx + 1]
+    objects = [l for l in lines[hit_objects_idx + 1:] if l.strip()]
+    trimmed = objects[:keep]
+
+    with open(output_path, 'w', encoding='utf-8') as f:
+        f.writelines(header)
+        f.writelines(trimmed)
+    
+    return output_path

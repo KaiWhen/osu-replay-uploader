@@ -10,7 +10,7 @@ class Bot(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
         intents.message_content = True
-        super().__init__(command_prefix="!", intents=intents)
+        super().__init__(command_prefix=".", intents=intents)
 
 
     async def setup_hook(self):
@@ -21,6 +21,7 @@ class Bot(commands.Bot):
         await self.load_extension("src.bot.cogs.skins")
         await self.load_extension("src.bot.cogs.notifications")
         await self.load_extension("src.bot.cogs.jobs_feed")
+        await self.load_extension("src.bot.cogs.osu")
         
         await self.tree.sync()
 
