@@ -163,8 +163,9 @@ async def create_thumbnail(score_id: int) -> str:
 
     bg_w, _ = thumbnail.size
     sorted_mods = sort_mods(mods)
+    mods_len = len(mods) - 1 if 'CL' in mods else len(mods)
     mod_w = 140
-    mods_length = mod_w * (len(mods) - 1)
+    mods_length = mod_w * mods_len
     mods_offset = (bg_w - mods_length) // 2
     count = 0
     for mod in sorted_mods:
