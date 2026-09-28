@@ -264,7 +264,7 @@ async def calc_sr_pp(score_obj: Score, mods: list[str], acc: float, if_fc: bool=
         stats['miss'] = 0
         if 'large_tick_hit' in stats:
             stats['large_tick_hit'] = score_obj.maximum_statistics.large_tick_hit
-        acc = calc_stable_accuracy(stats) if lazer else calc_lazer_accuracy(stats, score_obj.maximum_statistics)
+        acc = calc_stable_accuracy(stats) if not lazer else calc_lazer_accuracy(stats, score_obj.maximum_statistics)
         if_fc_res = calc.calculate(
             file_path=original_file_path,
             mode=0,
